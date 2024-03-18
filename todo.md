@@ -1,26 +1,10 @@
-# duck simulator
+# todo.md
 
-- characterss that move around
-
-- duckies
-
-- eating the most bread
-
-  - pizza
-  - and baguette
-
-- 3d modelling
-
-  - model a ducky
-
+- frontend graphics
+- input / movements (on mobile as well)
+- game mechanics
+- BACKEND THINGY
+- MAKE THE GAME WORK MULTIPLAYER
+- frontend menus
+- different ducks
 - different maps
-
-  - pond
-  - eiffel tower
-  - walmart
-
-- 1:00 timer whoever is on top wins
-
-- bump into other ducks to stun them (tail?)
-
-  - steal n% of bread ?
