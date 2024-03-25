@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import Duck from "./duck";
 import Pond from "./pond";
+import Bread from "./bread";
 
 export default class Game {
   clock: THREE.Clock;
@@ -10,6 +11,7 @@ export default class Game {
   renderer: THREE.WebGLRenderer;
   duck: Duck;
   pond: Pond;
+  bread: Bread[];
 
   constructor() {
     this.clock = new THREE.Clock();
@@ -40,6 +42,8 @@ export default class Game {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // default THREE.PCFShadowMap
 
     document.body.appendChild(this.renderer.domElement);
+
+    this.bread = [];
 
     this.duck = new Duck();
     this.scene.add(this.duck);
@@ -81,13 +85,30 @@ export default class Game {
 
   update(self: Game) {
     const deltaTime = self.clock.getDelta();
-    self.handleInput();
 
     requestAnimationFrame(() => self.update(self));
-
     self.renderer.render(self.scene, self.camera);
 
+    self.handleInput();
+
+    if (Math.random() < 1) {
+      self.bread.push(new Bread());
+      self.scene.add(self.bread[self.bread.length - 1]);
+    }
+
+    for (let i = 0; i < self.bread.length; i++) {
+      self.bread[i].update(deltaTime);
+      // if (self.bread[i].position.y < -1) {
+      //   self.scene.remove(self.bread[i]);
+      //
+      //   self.bread[i] = self.bread[self.bread.length - 1];
+      //   self.bread.pop();
+      // }
+    }
+
     self.duck.update(deltaTime);
+
+    self.handleCollisions();
 
     self.camera.position.set(
       -Math.sin(self.duck.direction) * 5,
@@ -102,6 +123,30 @@ export default class Game {
       self.duck.position.z + 2 * Math.cos(self.duck.direction),
     );
     self.camera.lookAt(lookat);
+  }
+
+  handleCollisions() {
+    const self = this;
+
+    function intersect(a: Duck, b: Bread) {
+      return (
+        a.position.x - a.size.x <= b.position.x + b.size.x &&
+        a.position.x + a.size.x >= b.position.x - b.size.x &&
+        a.position.y - a.size.y <= b.position.y + b.size.y &&
+        a.position.y + a.size.y >= b.position.y - b.size.y &&
+        a.position.z - a.size.z <= b.position.z + b.size.z &&
+        a.position.z + a.size.z >= b.position.z - b.size.z
+      );
+    }
+
+    for (let i = 0; i < self.bread.length; i++) {
+      if (intersect(self.duck, self.bread[i])) {
+        self.scene.remove(self.bread[i]);
+
+        self.bread[i] = self.bread[self.bread.length - 1];
+        self.bread.pop();
+      }
+    }
   }
 
   handleInput() {

@@ -8,6 +8,5 @@ export default class Pond extends THREE.Mesh {
     );
     this.rotateX(-Math.PI / 2);
     this.receiveShadow = true;
-    this.position.set(0, -0.5, 0);
   }
 }
