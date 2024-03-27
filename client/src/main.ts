@@ -8,6 +8,10 @@ function main() {
     return;
   }
 
+  window.oncontextmenu = () => {
+    return false;
+  };
+
   const game = new Game();
   game.update(game);
 }

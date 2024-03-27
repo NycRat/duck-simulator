@@ -68,11 +68,40 @@ export default class Game {
   init() {
     const self = this;
 
+    const handleTouch = (touch: Touch) => {
+      const touchX = touch.clientX;
+      if (touchX > window.innerWidth / 2) {
+        self.pressedKeys.set("ArrowRight", true);
+        self.pressedKeys.set("ArrowLeft", false);
+      } else {
+        self.pressedKeys.set("ArrowLeft", true);
+        self.pressedKeys.set("ArrowRight", false);
+      }
+    };
+
     window.addEventListener("keydown", (event) => {
       self.pressedKeys.set(event.key, true);
     });
     window.addEventListener("keyup", (event) => {
       self.pressedKeys.set(event.key, false);
+    });
+    window.addEventListener(
+      "touchstart",
+      (event) => {
+        event.preventDefault();
+        handleTouch(event.touches[event.touches.length - 1]);
+      },
+      { passive: false },
+    );
+    window.addEventListener("touchend", (event) => {
+      console.log(event.touches);
+
+      self.pressedKeys.set("ArrowRight", false);
+      self.pressedKeys.set("ArrowLeft", false);
+
+      if (event.touches.length > 0) {
+        handleTouch(event.touches[event.touches.length - 1]);
+      }
     });
 
     window.addEventListener("resize", () => {
@@ -80,6 +109,7 @@ export default class Game {
       self.camera.updateProjectionMatrix();
 
       self.renderer.setSize(window.innerWidth, window.innerHeight);
+      self.renderer.setPixelRatio(window.devicePixelRatio);
     });
   }
 
@@ -91,7 +121,7 @@ export default class Game {
 
     self.handleInput();
 
-    if (Math.random() < 1) {
+    if (Math.random() < 0.1) {
       self.bread.push(new Bread());
       self.scene.add(self.bread[self.bread.length - 1]);
     }
