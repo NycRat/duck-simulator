@@ -3,11 +3,14 @@ use std::time::{Duration, Instant};
 use actix::prelude::*;
 use actix_web_actors::ws;
 
-use crate::{server, state};
+use crate::{
+    server,
+    state::State,
+};
 
 /// How often heartbeat pings are sent
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
-const UPDATE_INTERVAL: Duration = Duration::from_millis(50);
+const UPDATE_SYNC_INTERVAL: Duration = Duration::from_millis(50);
 
 /// How long before lack of client response causes a timeout
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
@@ -22,11 +25,10 @@ pub struct Client {
     pub hb: Instant,
 
     /// joined lobby
-    pub lobby: String,
+    // pub lobby: String,
 
-    /// peer name
     // pub name: Option<String>,
-    pub state: state::State,
+    // pub state: state::State,
 
     /// Game server
     pub addr: Addr<server::GameServer>,
@@ -57,27 +59,29 @@ impl Client {
         });
     }
 
-    // TODO
-    fn update(&mut self, ctx: &mut ws::WebsocketContext<Self>) {
-        ctx.run_interval(UPDATE_INTERVAL, |act, ctx| {
-            act.addr
-                .send(server::Update {
-                    lobby_name: act.lobby.clone(),
-                })
-                .into_actor(act)
-                .then(|res, _, ctx| {
-                    // ctx.text("/list\nhaha");
-                    let positions: String = res
-                        .unwrap_or_default()
-                        .into_iter()
-                        .map(|state| format!("\n{},{},{}", state.name, state.x, state.z))
-                        .collect();
-
-                    ctx.text(format!("/update{positions}"));
-
-                    fut::ready(())
-                })
-                .wait(ctx);
+    fn update_sync(&mut self, ctx: &mut ws::WebsocketContext<Self>) {
+        ctx.run_interval(UPDATE_SYNC_INTERVAL, |act, ctx| {
+            // act.addr.send(server::UpdateSync {
+            //     lobby_name: act.lobby
+            // }).
+            // act.addr
+            //     .send(server::UpdateSync {
+            //         lobby_name: act.lobby,
+            //     })
+            //     .into_actor(act)
+            //     .then(|res, _, ctx| {
+            //         // ctx.text("/list\nhaha");
+            //         let positions: String = res
+            //             .unwrap_or_default()
+            //             .into_iter()
+            //             .map(|state| format!("\n{},{},{}", state.name, state.x, state.z))
+            //             .collect();
+            //
+            //         ctx.text(format!("/update{positions}"));
+            //
+            //         fut::ready(())
+            //     })
+            //     .wait(ctx);
             // act.addr.do_send()
         });
     }
@@ -91,7 +95,7 @@ impl Actor for Client {
     fn started(&mut self, ctx: &mut Self::Context) {
         // we'll start heartbeat process on session start.
         self.hb(ctx);
-        self.update(ctx);
+        self.update_sync(ctx);
 
         // register self in chat server. `AsyncContext::wait` register
         // future within context, but context waits until this future resolves
@@ -187,10 +191,10 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Client {
                         }
                         "/join" => {
                             if v.len() == 2 {
-                                self.lobby = v[1].to_owned();
+                                // self.lobby = v[1].to_owned();
                                 self.addr.do_send(server::Join {
                                     id: self.id,
-                                    name: self.lobby.clone(),
+                                    name: v[1].to_owned(),
                                 });
 
                                 ctx.text("/join\ntrue");
@@ -200,10 +204,26 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Client {
                         }
                         "/name" => {
                             if v.len() == 2 {
-                                self.state.name = v[1].to_owned();
+                                // self.state.name = v[1].to_owned();
                                 ctx.text("/name\ntrue");
                             } else {
                                 ctx.text("/name\nfalse");
+                            }
+                        }
+                        "/update" => {
+                            if v.len() == 2 {
+                                if let Some((x, z)) = v[1].split_once(' ') {
+                                    // println!("{x},{z}");
+
+                                    self.addr.do_send(server::Update {
+                                        id: self.id,
+                                        state: State {
+                                            x: x.parse().unwrap_or_default(),
+                                            z: z.parse().unwrap_or_default(),
+                                        },
+                                    });
+                                }
+                            } else {
                             }
                         }
                         _ => ctx.text(format!("/{m:?}")),

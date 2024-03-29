@@ -9,7 +9,7 @@ export default class Game {
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
   renderer: THREE.WebGLRenderer;
-  duck: Duck;
+  ducks: Duck[];
   pond: Pond;
   bread: Bread[];
 
@@ -45,8 +45,8 @@ export default class Game {
 
     this.bread = [];
 
-    this.duck = new Duck();
-    this.scene.add(this.duck);
+    this.ducks = [new Duck()];
+    this.scene.add(this.ducks[0]);
 
     this.pond = new Pond();
     this.scene.add(this.pond);
@@ -136,21 +136,24 @@ export default class Game {
       // }
     }
 
-    self.duck.update(deltaTime);
+    // for (const duck of self.ducks) {
+    //   duck.update(deltaTime);
+    // }
+    self.ducks[0].update(deltaTime);
 
     self.handleCollisions();
 
     self.camera.position.set(
-      -Math.sin(self.duck.direction) * 5,
+      -Math.sin(self.ducks[0].direction) * 5,
       1.5,
-      -Math.cos(self.duck.direction) * 5,
+      -Math.cos(self.ducks[0].direction) * 5,
     );
-    self.camera.position.add(self.duck.position);
+    self.camera.position.add(self.ducks[0].position);
 
     const lookat = new THREE.Vector3(
-      self.duck.position.x + 2 * Math.sin(self.duck.direction),
-      self.duck.position.y,
-      self.duck.position.z + 2 * Math.cos(self.duck.direction),
+      self.ducks[0].position.x + 2 * Math.sin(self.ducks[0].direction),
+      self.ducks[0].position.y,
+      self.ducks[0].position.z + 2 * Math.cos(self.ducks[0].direction),
     );
     self.camera.lookAt(lookat);
   }
@@ -170,7 +173,7 @@ export default class Game {
     }
 
     for (let i = 0; i < self.bread.length; i++) {
-      if (intersect(self.duck, self.bread[i])) {
+      if (intersect(self.ducks[0], self.bread[i])) {
         self.scene.remove(self.bread[i]);
 
         self.bread[i] = self.bread[self.bread.length - 1];
@@ -184,13 +187,13 @@ export default class Game {
     const left = self.pressedKeys.get("ArrowLeft");
     const right = self.pressedKeys.get("ArrowRight");
     if ((!left && !right) || (left && right)) {
-      self.duck.deltaDirection = 0;
+      self.ducks[0].deltaDirection = 0;
     } else {
       if (left) {
-        self.duck.deltaDirection = 3;
+        self.ducks[0].deltaDirection = 3;
       }
       if (right) {
-        self.duck.deltaDirection = -3;
+        self.ducks[0].deltaDirection = -3;
       }
     }
   }

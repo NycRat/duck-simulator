@@ -4,6 +4,7 @@ export default class Duck extends THREE.Mesh {
   direction: number;
   deltaDirection: number;
   size: THREE.Vector3;
+  idd: string;
 
   constructor() {
     super(
@@ -18,8 +19,9 @@ export default class Duck extends THREE.Mesh {
     this.direction = Math.PI;
     this.deltaDirection = 0;
 
-    this.size = new THREE.Vector3(1,1,1);
+    this.size = new THREE.Vector3(1, 1, 1);
     this.size.multiplyScalar(0.5);
+    this.idd = "";
   }
 
   update(deltaTime: number) {

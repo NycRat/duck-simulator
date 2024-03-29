@@ -2,14 +2,13 @@
 //! And manages available lobbies. Peers send messages to other peers in same
 //! lobby through `ChatServer`.
 
-use crate::state;
+use crate::state::{self, State};
 use std::{
     collections::{HashMap, HashSet},
-    sync::{
-        atomic::{AtomicUsize, Ordering},
-        Arc,
-    },
+    time::Duration,
 };
+
+const UPDATE_SYNC_INTERVAL: Duration = Duration::from_millis(10);
 
 use actix::prelude::*;
 use rand::{rngs::ThreadRng, Rng};
@@ -66,9 +65,10 @@ pub struct Join {
 }
 
 #[derive(Message)]
-#[rtype(result = "Vec<state::State>")]
+#[rtype(result = "()")]
 pub struct Update {
-    pub lobby_name: String,
+    pub id: usize,
+    pub state: state::State,
 }
 
 /// `ChatServer` manages chat lobbies and responsible for coordinating chat session.
@@ -77,13 +77,13 @@ pub struct Update {
 #[derive(Debug)]
 pub struct GameServer {
     clients: HashMap<usize, Recipient<Message>>,
+    states: HashMap<usize, state::State>,
     lobbies: HashMap<String, HashSet<usize>>,
     rng: ThreadRng,
-    visitor_count: Arc<AtomicUsize>,
 }
 
 impl GameServer {
-    pub fn new(visitor_count: Arc<AtomicUsize>) -> GameServer {
+    pub fn new() -> GameServer {
         // default lobby
         let mut lobbies = HashMap::new();
         lobbies.insert("main".to_owned(), HashSet::new());
@@ -93,12 +93,25 @@ impl GameServer {
             clients: HashMap::new(),
             lobbies,
             rng: rand::thread_rng(),
-            visitor_count,
+            states: HashMap::new(),
         }
     }
-}
 
-impl GameServer {
+    fn update_sync(&mut self, ctx: &mut Context<Self>) {
+        ctx.run_interval(UPDATE_SYNC_INTERVAL, |act, _ctx| {
+            println!("{}", act.states.len());
+
+            for (lobby, _) in &act.lobbies {
+                let states: String = act
+                    .states
+                    .iter()
+                    .map(|(id, state)| format!("\n{id} {x} {z}", x = state.x, z = state.z))
+                    .collect();
+                act.send_message(lobby, &format!("/updatesync{states}"), 0);
+            }
+        });
+    }
+
     /// Send message to all users in the lobby
     fn send_message(&self, lobby: &str, message: &str, skip_id: usize) {
         if let Some(sessions) = self.lobbies.get(lobby) {
@@ -118,6 +131,10 @@ impl Actor for GameServer {
     /// We are going to use simple Context, we just need ability to communicate
     /// with other actors.
     type Context = Context<Self>;
+
+    fn started(&mut self, ctx: &mut Self::Context) {
+        self.update_sync(ctx);
+    }
 }
 
 /// Handler for Connect message.
@@ -129,7 +146,24 @@ impl Handler<Connect> for GameServer {
     fn handle(&mut self, msg: Connect, _: &mut Context<Self>) -> Self::Result {
         // register session with random id
         let id = self.rng.gen::<usize>();
+
+        msg.addr.do_send(Message(format!("/id\n{id}").to_owned()));
+
+        {
+            // JOIN EVERYONE ELSE
+            let other_ids: String = self
+                .lobbies
+                .get("main")
+                .unwrap_or(&HashSet::new())
+                .iter()
+                .map(|x| format!("\n{x}"))
+                .collect();
+
+            msg.addr.do_send(Message(format!("/join{other_ids}").to_owned()));
+        }
+
         self.clients.insert(id, msg.addr);
+        self.states.insert(id, State { x: 0.0, z: 0.0 });
 
         // auto join session to main lobby
         self.lobbies
@@ -138,10 +172,7 @@ impl Handler<Connect> for GameServer {
             .insert(id);
 
         // notify all users in same lobby
-        self.send_message("main", &format!("{id} joined"), id);
-
-        let count = self.visitor_count.fetch_add(1, Ordering::SeqCst);
-        self.send_message("main", &format!("Total visitors {count}"), 0);
+        self.send_message("main", &format!("/join\n{id}"), id);
 
         // send id back
         id
@@ -158,14 +189,15 @@ impl Handler<Disconnect> for GameServer {
         let mut lobbies: Vec<String> = Vec::new();
 
         // remove address
-        if self.clients.remove(&msg.id).is_some() {
+        if self.clients.remove(&msg.id).is_some() && self.states.remove(&msg.id).is_some() {
             // remove session from all lobbies
-            for (name, sessions) in &mut self.lobbies {
-                if sessions.remove(&msg.id) {
+            for (name, clients) in &mut self.lobbies {
+                if clients.remove(&msg.id) {
                     lobbies.push(name.to_owned());
                 }
             }
         }
+
         // send message to other users
         for lobby in lobbies {
             self.send_message(&lobby, "Someone disconnected", 0);
@@ -219,19 +251,16 @@ impl Handler<Join> for GameServer {
     }
 }
 
-// TODO
 impl Handler<Update> for GameServer {
     type Result = MessageResult<Update>;
 
     fn handle(&mut self, msg: Update, _: &mut Self::Context) -> Self::Result {
-        match self.lobbies.get(&msg.lobby_name) {
-            Some(lobby) => {
-                // lobby.iter().map(|id| {
-                // self.clients.get(id).unwrap().
-                // })
-                // MessageResult(lobby.len() as i32)
+        match self.states.get_mut(&msg.id) {
+            Some(state) => {
+                *state = msg.state;
             }
-            None => MessageResult(vec![]),
+            None => {}
         }
+        MessageResult(())
     }
 }
