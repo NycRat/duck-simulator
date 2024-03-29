@@ -29,3 +29,9 @@ canvas {
   position: absolute;
   color: white;
 }
+
+#id {
+  position: absolute;
+  color: white;
+  background-color: #000000aa;
+}
