@@ -1,20 +1,29 @@
 import * as THREE from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
-export default class Duck extends THREE.Mesh {
+export default class Duck extends THREE.Group {
   direction: number;
   deltaDirection: number;
   size: THREE.Vector3;
   idd: string;
 
   constructor() {
-    super(
-      new THREE.BoxGeometry(1, 1, 1),
-      new THREE.MeshStandardMaterial({ color: 0xffff00 }),
+    super();
+    const loader = new GLTFLoader();
+    loader.load(
+      "./assets/duck.glb",
+      (glb) => {
+        glb.scene.castShadow = true;
+        glb.scene.traverse(function (child) {
+          child.castShadow = true;
+        });
+        this.add(glb.scene);
+      },
+      undefined,
+      (err) => {
+        console.error(err);
+      },
     );
-    this.castShadow = true;
-    this.receiveShadow = true;
-
-    this.position.setY(0.5);
 
     this.direction = Math.PI;
     this.deltaDirection = 0;

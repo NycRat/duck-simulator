@@ -22,4 +22,4 @@ document.getElementById("start")?.addEventListener("click", () => {
   startGame();
 });
 
-// startGame();
+startGame();

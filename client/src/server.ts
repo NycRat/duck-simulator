@@ -41,7 +41,6 @@ export default function serverConnect(game: Game) {
         }
         console.log("Lobbies: " + lobbies);
       } else if (data[0] === "/updatesync") {
-        console.log("update: ", data[1]);
         for (let i = 1; i < data.length; i++) {
           const info = data[i].split(" ");
           const id = info[0];

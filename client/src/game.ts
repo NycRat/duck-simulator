@@ -94,8 +94,6 @@ export default class Game {
       { passive: false },
     );
     window.addEventListener("touchend", (event) => {
-      console.log(event.touches);
-
       self.pressedKeys.set("ArrowRight", false);
       self.pressedKeys.set("ArrowLeft", false);
 
@@ -128,12 +126,6 @@ export default class Game {
 
     for (let i = 0; i < self.bread.length; i++) {
       self.bread[i].update(deltaTime);
-      // if (self.bread[i].position.y < -1) {
-      //   self.scene.remove(self.bread[i]);
-      //
-      //   self.bread[i] = self.bread[self.bread.length - 1];
-      //   self.bread.pop();
-      // }
     }
 
     // for (const duck of self.ducks) {
