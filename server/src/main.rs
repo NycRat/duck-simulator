@@ -5,10 +5,10 @@ use actix_web::{middleware::Logger, web, App, Error, HttpRequest, HttpResponse, 
 use actix_web_actors::ws;
 
 mod client;
+mod protos;
 mod server;
 mod state;
 
-/// Entry point for our websocket route
 async fn ws_route(
     req: HttpRequest,
     stream: web::Payload,
@@ -28,11 +28,18 @@ async fn ws_route(
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
+    dotenvy::dotenv().unwrap();
 
-    // start chat server actor
     let server = server::GameServer::new().start();
 
-    log::info!("starting HTTP server at http://localhost:8000");
+    let host = std::env::var("HOST").unwrap();
+    let port: i32 = std::env::var("PORT").unwrap().parse().unwrap();
+
+    log::info!(
+        "starting HTTP server at http://{}:{}",
+        std::env::var("HOST").unwrap(),
+        std::env::var("PORT").unwrap(),
+    );
 
     HttpServer::new(move || {
         App::new()
@@ -41,7 +48,8 @@ async fn main() -> std::io::Result<()> {
             .wrap(Logger::default())
     })
     .workers(2)
-    .bind(("127.0.0.1", 8000))?
+    // .bind(("10.13.22.110", 8000))?
+    .bind(format!("{host}:{port}"))?
     .run()
     .await
 }

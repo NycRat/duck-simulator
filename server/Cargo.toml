@@ -9,6 +9,11 @@ edition = "2021"
 actix = "0.13.3"
 actix-web = "4.5.1"
 actix-web-actors = "4.3.0"
+dotenvy = "0.15.7"
 env_logger = "0.11.3"
 log = "0.4.21"
+protobuf = "3.4.0"
 rand = "0.8.5"
+
+[build-dependencies]
+protobuf-codegen = "3.4.0"

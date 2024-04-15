@@ -18,8 +18,8 @@ function startGame() {
   serverConnect(game);
 }
 
-document.getElementById("start")?.addEventListener("click", () => {
-  startGame();
-});
+// document.getElementById("start")?.addEventListener("click", () => {
+//   startGame();
+// });
 
 startGame();

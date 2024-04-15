@@ -3,34 +3,16 @@ use std::time::{Duration, Instant};
 use actix::prelude::*;
 use actix_web_actors::ws;
 
-use crate::{
-    server,
-    state::State,
-};
+use crate::{protos::generated_with_pure::update::Update, server, state::State};
+use protobuf::Message;
 
-/// How often heartbeat pings are sent
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
-const UPDATE_SYNC_INTERVAL: Duration = Duration::from_millis(50);
-
-/// How long before lack of client response causes a timeout
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
 
 #[derive(Debug)]
 pub struct Client {
-    /// unique session id
-    pub id: usize,
-
-    /// Client must send ping at least once per 10 seconds (CLIENT_TIMEOUT),
-    /// otherwise we drop connection.
+    pub id: u32,
     pub hb: Instant,
-
-    /// joined lobby
-    // pub lobby: String,
-
-    // pub name: Option<String>,
-    // pub state: state::State,
-
-    /// Game server
     pub addr: Addr<server::GameServer>,
 }
 
@@ -58,33 +40,6 @@ impl Client {
             ctx.ping(b"");
         });
     }
-
-    fn update_sync(&mut self, ctx: &mut ws::WebsocketContext<Self>) {
-        ctx.run_interval(UPDATE_SYNC_INTERVAL, |act, ctx| {
-            // act.addr.send(server::UpdateSync {
-            //     lobby_name: act.lobby
-            // }).
-            // act.addr
-            //     .send(server::UpdateSync {
-            //         lobby_name: act.lobby,
-            //     })
-            //     .into_actor(act)
-            //     .then(|res, _, ctx| {
-            //         // ctx.text("/list\nhaha");
-            //         let positions: String = res
-            //             .unwrap_or_default()
-            //             .into_iter()
-            //             .map(|state| format!("\n{},{},{}", state.name, state.x, state.z))
-            //             .collect();
-            //
-            //         ctx.text(format!("/update{positions}"));
-            //
-            //         fut::ready(())
-            //     })
-            //     .wait(ctx);
-            // act.addr.do_send()
-        });
-    }
 }
 
 impl Actor for Client {
@@ -95,7 +50,6 @@ impl Actor for Client {
     fn started(&mut self, ctx: &mut Self::Context) {
         // we'll start heartbeat process on session start.
         self.hb(ctx);
-        self.update_sync(ctx);
 
         // register self in chat server. `AsyncContext::wait` register
         // future within context, but context waits until this future resolves
@@ -127,11 +81,16 @@ impl Actor for Client {
 }
 
 /// Handle messages from chat server, we simply send it to peer websocket
-impl Handler<server::Message> for Client {
+impl Handler<server::MessageWoah> for Client {
     type Result = ();
 
-    fn handle(&mut self, msg: server::Message, ctx: &mut Self::Context) {
-        ctx.text(msg.0);
+    fn handle(&mut self, msg: server::MessageWoah, ctx: &mut Self::Context) {
+        if msg.0.is_some() {
+            ctx.text(msg.0.unwrap());
+        }
+        if msg.1.is_some() {
+            ctx.binary(msg.1.unwrap());
+        }
     }
 }
 
@@ -211,38 +170,38 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Client {
                             }
                         }
                         "/update" => {
-                            if v.len() == 2 {
-                                if let Some((x, z)) = v[1].split_once(' ') {
-                                    // println!("{x},{z}");
-
-                                    self.addr.do_send(server::Update {
-                                        id: self.id,
-                                        state: State {
-                                            x: x.parse().unwrap_or_default(),
-                                            z: z.parse().unwrap_or_default(),
-                                        },
-                                    });
-                                }
-                            } else {
-                            }
+                            // if v.len() == 2 {
+                            //     if let Some((x, z)) = v[1].split_once(' ') {
+                            //         // println!("{x},{z}");
+                            //
+                            //         self.addr.do_send(server::Update {
+                            //             id: self.id,
+                            //             state: State {
+                            //                 x: x.parse().unwrap_or_default(),
+                            //                 z: z.parse().unwrap_or_default(),
+                            //             },
+                            //         });
+                            //     }
+                            // } else {
+                            // }
                         }
                         _ => ctx.text(format!("/{m:?}")),
                     }
                 } else {
-                    // let msg = if let Some(ref name) = self.state.name {
-                    //     format!("{name}: {m}")
-                    // } else {
-                    //     m.to_owned()
-                    // };
-                    // send message to chat server
-                    // self.addr.do_send(server::ClientMessage {
-                    //     id: self.id,
-                    //     msg,
-                    //     lobby: self.lobby.clone(),
-                    // })
                 }
             }
-            ws::Message::Binary(_) => println!("Unexpected binary"),
+            ws::Message::Binary(bytes) => {
+                let in_msg = Update::parse_from_bytes(&bytes).unwrap();
+                self.addr.do_send(server::Update {
+                    id: self.id,
+                    state: State {
+                        x: in_msg.x,
+                        z: in_msg.z,
+                        rotation: in_msg.rotation,
+                    },
+                });
+                // println!("{in_msg}");
+            }
             ws::Message::Close(reason) => {
                 ctx.close(reason);
                 ctx.stop();

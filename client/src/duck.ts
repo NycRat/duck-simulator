@@ -11,7 +11,7 @@ export default class Duck extends THREE.Group {
     super();
     const loader = new GLTFLoader();
     loader.load(
-      "./assets/duck.glb",
+      "duck.glb",
       (glb) => {
         glb.scene.castShadow = true;
         glb.scene.traverse(function (child) {

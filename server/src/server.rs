@@ -1,8 +1,7 @@
-//! `ChatServer` is an actor. It maintains list of connection client session.
-//! And manages available lobbies. Peers send messages to other peers in same
-//! lobby through `ChatServer`.
-
+use crate::protos::generated_with_pure::update_sync::UpdateProto;
+use crate::protos::generated_with_pure::update_sync::UpdateSyncProto;
 use crate::state::{self, State};
+use protobuf::Message as OtherMessage;
 use std::{
     collections::{HashMap, HashSet},
     time::Duration,
@@ -13,25 +12,22 @@ const UPDATE_SYNC_INTERVAL: Duration = Duration::from_millis(10);
 use actix::prelude::*;
 use rand::{rngs::ThreadRng, Rng};
 
-/// Chat server sends this messages to session
 #[derive(Message)]
 #[rtype(result = "()")]
-pub struct Message(pub String);
-
-/// Message for chat server communications
+pub struct MessageWoah(pub Option<String>, pub Option<Vec<u8>>);
 
 /// New chat session is created
 #[derive(Message)]
-#[rtype(usize)]
+#[rtype(u32)]
 pub struct Connect {
-    pub addr: Recipient<Message>,
+    pub addr: Recipient<MessageWoah>,
 }
 
 /// Session is disconnected
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct Disconnect {
-    pub id: usize,
+    pub id: u32,
 }
 
 /// Send message to specific lobby
@@ -39,7 +35,7 @@ pub struct Disconnect {
 #[rtype(result = "()")]
 pub struct ClientMessage {
     /// Id of the client session
-    pub id: usize,
+    pub id: u32,
     /// Peer message
     pub msg: String,
     /// lobby name
@@ -58,7 +54,7 @@ impl actix::Message for ListLobbies {
 #[rtype(result = "()")]
 pub struct Join {
     /// Client ID
-    pub id: usize,
+    pub id: u32,
 
     /// lobby name
     pub name: String,
@@ -67,7 +63,7 @@ pub struct Join {
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct Update {
-    pub id: usize,
+    pub id: u32,
     pub state: state::State,
 }
 
@@ -76,9 +72,9 @@ pub struct Update {
 /// Implementation is very naïve.
 #[derive(Debug)]
 pub struct GameServer {
-    clients: HashMap<usize, Recipient<Message>>,
-    states: HashMap<usize, state::State>,
-    lobbies: HashMap<String, HashSet<usize>>,
+    clients: HashMap<u32, Recipient<MessageWoah>>,
+    states: HashMap<u32, state::State>,
+    lobbies: HashMap<String, HashSet<u32>>,
     rng: ThreadRng,
 }
 
@@ -99,26 +95,46 @@ impl GameServer {
 
     fn update_sync(&mut self, ctx: &mut Context<Self>) {
         ctx.run_interval(UPDATE_SYNC_INTERVAL, |act, _ctx| {
-            println!("{}", act.states.len());
-
             for (lobby, _) in &act.lobbies {
-                let states: String = act
+                let mut out_msg = UpdateSyncProto::new();
+                out_msg.ducks = act
                     .states
                     .iter()
-                    .map(|(id, state)| format!("\n{id} {x} {z}", x = state.x, z = state.z))
+                    .map(|(id, state)| {
+                        let mut a = UpdateProto::new();
+                        a.id = *id;
+                        a.x = state.x;
+                        a.z = state.z;
+                        a.rotation = state.rotation;
+                        a
+                    })
                     .collect();
-                act.send_message(lobby, &format!("/updatesync{states}"), 0);
+
+                // println!("BINARY: {:?}", out_msg.write_to_bytes().unwrap().size());
+                act.send_message_binary(lobby, out_msg.write_to_bytes().unwrap(), 0);
             }
         });
     }
 
     /// Send message to all users in the lobby
-    fn send_message(&self, lobby: &str, message: &str, skip_id: usize) {
+    fn send_message(&self, lobby: &str, message: &str, skip_id: u32) {
         if let Some(sessions) = self.lobbies.get(lobby) {
             for id in sessions {
                 if *id != skip_id {
                     if let Some(addr) = self.clients.get(id) {
-                        addr.do_send(Message(message.to_owned()));
+                        addr.do_send(MessageWoah(Some(message.to_owned()), None));
+                    }
+                }
+            }
+        }
+    }
+
+    fn send_message_binary(&self, lobby: &str, message: Vec<u8>, skip_id: u32) {
+        if let Some(sessions) = self.lobbies.get(lobby) {
+            for id in sessions {
+                if *id != skip_id {
+                    if let Some(addr) = self.clients.get(id) {
+                        addr.do_send(MessageWoah(None, Some(message.clone())));
                     }
                 }
             }
@@ -141,13 +157,14 @@ impl Actor for GameServer {
 ///
 /// Register new session and assign unique id to this session
 impl Handler<Connect> for GameServer {
-    type Result = usize;
+    type Result = u32;
 
     fn handle(&mut self, msg: Connect, _: &mut Context<Self>) -> Self::Result {
         // register session with random id
-        let id = self.rng.gen::<usize>();
+        let id = self.rng.gen::<u32>();
 
-        msg.addr.do_send(Message(format!("/id\n{id}").to_owned()));
+        msg.addr
+            .do_send(MessageWoah(Some(format!("/id\n{id}").to_owned()), None));
 
         {
             // JOIN EVERYONE ELSE
@@ -159,11 +176,21 @@ impl Handler<Connect> for GameServer {
                 .map(|x| format!("\n{x}"))
                 .collect();
 
-            msg.addr.do_send(Message(format!("/join{other_ids}").to_owned()));
+            msg.addr.do_send(MessageWoah(
+                Some(format!("/join{other_ids}").to_owned()),
+                None,
+            ));
         }
 
         self.clients.insert(id, msg.addr);
-        self.states.insert(id, State { x: 0.0, z: 0.0 });
+        self.states.insert(
+            id,
+            State {
+                x: 0.0,
+                z: 0.0,
+                rotation: 0.0,
+            },
+        );
 
         // auto join session to main lobby
         self.lobbies
@@ -200,7 +227,7 @@ impl Handler<Disconnect> for GameServer {
 
         // send message to other users
         for lobby in lobbies {
-            self.send_message(&lobby, "Someone disconnected", 0);
+            self.send_message(&lobby, &format!("/disconnect\n{}", msg.id), 0);
         }
     }
 }

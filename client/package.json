@@ -11,9 +11,11 @@
   "devDependencies": {
     "@types/three": "^0.162.0",
     "typescript": "^5.2.2",
-    "vite": "^5.1.6"
+    "vite": "^5.1.6",
+    "protoc-gen-js": "^3.21.2"
   },
   "dependencies": {
+    "google-protobuf": "^3.21.2",
     "three": "^0.162.0"
   }
 }

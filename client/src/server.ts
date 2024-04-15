@@ -1,12 +1,14 @@
 import Game from "./game";
 import Duck from "./duck";
+import UpdateProtos from "../protos/update_pb";
+import UpdateSyncProtos from "../protos/update_sync_pb";
 
 export default function serverConnect(game: Game) {
   var socket: WebSocket | null = null;
 
-  const proto = location.protocol.startsWith("https") ? "wss" : "ws";
-  // const wsUri = `${proto}://${location.host}/ws`;
-  const wsUri = `${proto}://127.0.0.1:8000/ws`;
+  const protocol = location.protocol.startsWith("https") ? "wss" : "ws";
+  const wsUri = `${protocol}://${location.hostname}:8000/ws`;
+  // const wsUri = `${protocol}://127.0.0.1:8000/ws`;
 
   socket = new WebSocket(wsUri);
 
@@ -19,14 +21,17 @@ export default function serverConnect(game: Game) {
 
     setInterval(() => {
       if (socket) {
-        socket.send(
-          `/update ${game.ducks[0].position.x.toFixed(10)} ${game.ducks[0].position.z.toFixed(10)}`,
-        );
+        const update = new UpdateProtos.Update();
+        update.setX(game.ducks[0].position.x);
+        update.setZ(game.ducks[0].position.z);
+        update.setRotation(game.ducks[0].rotation.y);
+
+        socket.send(update.serializeBinary());
       }
     }, 10);
   });
   socket.addEventListener("message", (event: MessageEvent<string>) => {
-    if (!socket) {
+    if (typeof event.data !== "string") {
       return;
     }
 
@@ -40,23 +45,13 @@ export default function serverConnect(game: Game) {
           lobbies += data[i] + ", ";
         }
         console.log("Lobbies: " + lobbies);
-      } else if (data[0] === "/updatesync") {
-        for (let i = 1; i < data.length; i++) {
-          const info = data[i].split(" ");
-          const id = info[0];
-          const x = parseFloat(info[1]);
-          const z = parseFloat(info[2]);
-
-          // REFACTOR TO OPTIMIZE LATER O(n), CURRENTLY O(n^2)
-          if (id === game.ducks[0].idd) {
-            continue;
-          }
-          for (const duck of game.ducks) {
-            if (id === duck.idd) {
-              duck.position.x = x;
-              duck.position.z = z;
-              break;
-            }
+      } else if (data[0] === "/disconnect") {
+        console.log(data);
+        for (let i = 0; i < game.ducks.length; i++) {
+          if (game.ducks[i].idd === data[1]) {
+            game.scene.remove(game.ducks[i]);
+            game.ducks.splice(i);
+            break;
           }
         }
       } else if (data[0] === "/id") {
@@ -72,6 +67,34 @@ export default function serverConnect(game: Game) {
       }
     } else {
       console.log("Message from server ", event.data);
+    }
+  });
+  socket.addEventListener("message", async (event: MessageEvent<Blob>) => {
+    if (typeof event.data === "string") {
+      return;
+    }
+    const data = UpdateSyncProtos.UpdateSyncProto.deserializeBinary(
+      new Uint8Array(await event.data.arrayBuffer()),
+    );
+    const ducks = data.getDucksList();
+    for (let i = 0; i < ducks.length; i++) {
+      const id = ducks[i].getId().toString();
+      const x = ducks[i].getX();
+      const z = ducks[i].getZ();
+      const rotation = ducks[i].getRotation();
+
+      if (id === game.ducks[0].idd) {
+        continue;
+      }
+      for (const duck of game.ducks) {
+        if (id === duck.idd) {
+          duck.position.x = x;
+          duck.position.z = z;
+          duck.rotation.y = rotation;
+          duck.direction = rotation;
+          break;
+        }
+      }
     }
   });
   socket.addEventListener("close", () => {

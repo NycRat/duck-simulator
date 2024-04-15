@@ -128,10 +128,11 @@ export default class Game {
       self.bread[i].update(deltaTime);
     }
 
-    // for (const duck of self.ducks) {
-    //   duck.update(deltaTime);
-    // }
-    self.ducks[0].update(deltaTime);
+    for (const duck of self.ducks) {
+      duck.update(deltaTime);
+    }
+
+    // self.ducks[0].update(deltaTime);
 
     self.handleCollisions();
 
