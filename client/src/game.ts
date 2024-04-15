@@ -54,13 +54,13 @@ export default class Game {
     const ambientLight = new THREE.AmbientLight(0xa0a0a0); // soft white light
     this.scene.add(ambientLight);
 
-    const light = new THREE.DirectionalLight(0xffffff, 2);
-    light.position.set(5, 10, 10); //default; light shining from top
-    light.castShadow = true; // default false
+    const light = new THREE.PointLight(0xffffff, 4, 0, 0.2);
+    light.position.set(5, 10, 10);
+    light.castShadow = true;
     this.scene.add(light);
 
-    const helper = new THREE.CameraHelper(light.shadow.camera);
-    this.scene.add(helper);
+    // const helper = new THREE.CameraHelper(light.shadow.camera);
+    // this.scene.add(helper);
 
     this.init();
   }
