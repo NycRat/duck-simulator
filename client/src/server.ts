@@ -1,7 +1,7 @@
 import Game from "./game";
 import Duck from "./duck";
-import UpdateProtos from "../protos/update_pb";
-import UpdateSyncProtos from "../protos/update_sync_pb";
+import Protos from "../protos_pb";
+import Bread from "./bread";
 
 export default function serverConnect(game: Game) {
   var socket: WebSocket | null = null;
@@ -21,12 +21,13 @@ export default function serverConnect(game: Game) {
 
     setInterval(() => {
       if (socket) {
-        const update = new UpdateProtos.Update();
-        update.setX(game.ducks[0].position.x);
-        update.setZ(game.ducks[0].position.z);
-        update.setRotation(game.ducks[0].rotation.y);
+        const duckState = new Protos.Duck();
+        duckState.setId(game.ducks[0].idd);
+        duckState.setX(game.ducks[0].position.x);
+        duckState.setZ(game.ducks[0].position.z);
+        duckState.setRotation(game.ducks[0].rotation.y);
 
-        socket.send(update.serializeBinary());
+        socket.send(duckState.serializeBinary());
       }
     }, 10);
   });
@@ -57,6 +58,7 @@ export default function serverConnect(game: Game) {
       } else if (data[0] === "/id") {
         game.ducks[0].idd = data[1];
       } else if (data[0] === "/join") {
+        console.log(data);
         for (let i = 1; i < data.length; i++) {
           game.ducks.push(new Duck());
           game.ducks[game.ducks.length - 1].idd = data[i];
@@ -69,13 +71,26 @@ export default function serverConnect(game: Game) {
       console.log("Message from server ", event.data);
     }
   });
+
   socket.addEventListener("message", async (event: MessageEvent<Blob>) => {
     if (typeof event.data === "string") {
       return;
     }
-    const data = UpdateSyncProtos.UpdateSyncProto.deserializeBinary(
+    const data = Protos.UpdateSync.deserializeBinary(
       new Uint8Array(await event.data.arrayBuffer()),
     );
+
+    // const serverTime = data.getTs();
+    // const deltaTime = new Date().getTime() - serverTime;
+
+    if (data.getBreadX() && data.getBreadY() && data.getBreadZ()) {
+      game.breadList.push(
+        new Bread(data.getBreadX(), data.getBreadY(), data.getBreadZ()),
+      );
+      game.scene.add(game.breadList[game.breadList.length - 1]);
+      console.log("BREAD");
+    }
+
     const ducks = data.getDucksList();
     for (let i = 0; i < ducks.length; i++) {
       const id = ducks[i].getId().toString();

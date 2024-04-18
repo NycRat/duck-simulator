@@ -1,7 +1,0 @@
-syntax = "proto3";
-
-message Update {
-  float x = 1;
-  float z = 2;
-  float rotation = 3;
-}

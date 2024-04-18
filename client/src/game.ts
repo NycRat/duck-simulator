@@ -11,7 +11,7 @@ export default class Game {
   renderer: THREE.WebGLRenderer;
   ducks: Duck[];
   pond: Pond;
-  bread: Bread[];
+  breadList: Bread[];
 
   constructor() {
     this.clock = new THREE.Clock();
@@ -25,6 +25,8 @@ export default class Game {
     );
     this.renderer = new THREE.WebGLRenderer({
       antialias: true,
+      precision: "highp",
+      powerPreference: "high-performance",
     });
 
     this.renderer.setPixelRatio(window.devicePixelRatio);
@@ -43,7 +45,7 @@ export default class Game {
 
     document.body.appendChild(this.renderer.domElement);
 
-    this.bread = [];
+    this.breadList = [];
 
     this.ducks = [new Duck()];
     this.scene.add(this.ducks[0]);
@@ -120,12 +122,12 @@ export default class Game {
     self.handleInput();
 
     if (Math.random() < 0.1) {
-      self.bread.push(new Bread());
-      self.scene.add(self.bread[self.bread.length - 1]);
+      // self.bread.push(new Bread());
+      // self.scene.add(self.bread[self.bread.length - 1]);
     }
 
-    for (let i = 0; i < self.bread.length; i++) {
-      self.bread[i].update(deltaTime);
+    for (let i = 0; i < self.breadList.length; i++) {
+      self.breadList[i].update(deltaTime);
     }
 
     for (const duck of self.ducks) {
@@ -165,12 +167,12 @@ export default class Game {
       );
     }
 
-    for (let i = 0; i < self.bread.length; i++) {
-      if (intersect(self.ducks[0], self.bread[i])) {
-        self.scene.remove(self.bread[i]);
+    for (let i = 0; i < self.breadList.length; i++) {
+      if (intersect(self.ducks[0], self.breadList[i])) {
+        self.scene.remove(self.breadList[i]);
 
-        self.bread[i] = self.bread[self.bread.length - 1];
-        self.bread.pop();
+        self.breadList[i] = self.breadList[self.breadList.length - 1];
+        self.breadList.pop();
       }
     }
   }

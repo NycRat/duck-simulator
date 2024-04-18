@@ -5,9 +5,10 @@ use actix_web::{middleware::Logger, web, App, Error, HttpRequest, HttpResponse, 
 use actix_web_actors::ws;
 
 mod client;
+mod duck;
+mod lobby;
 mod protos;
 mod server;
-mod state;
 
 async fn ws_route(
     req: HttpRequest,

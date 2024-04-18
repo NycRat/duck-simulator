@@ -3,7 +3,7 @@ use std::time::{Duration, Instant};
 use actix::prelude::*;
 use actix_web_actors::ws;
 
-use crate::{protos::generated_with_pure::update::Update, server, state::State};
+use crate::{duck::Duck, protos::protos::protos, server};
 use protobuf::Message;
 
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
@@ -17,23 +17,13 @@ pub struct Client {
 }
 
 impl Client {
-    /// helper method that sends ping to client every 5 seconds (HEARTBEAT_INTERVAL).
-    ///
-    /// also this method checks heartbeats from client
     fn hb(&self, ctx: &mut ws::WebsocketContext<Self>) {
         ctx.run_interval(HEARTBEAT_INTERVAL, |act, ctx| {
             // check client heartbeats
             if Instant::now().duration_since(act.hb) > CLIENT_TIMEOUT {
-                // heartbeat timed out
                 println!("Websocket Client heartbeat failed, disconnecting!");
-
-                // notify chat server
                 act.addr.do_send(server::Disconnect { id: act.id });
-
-                // stop actor
                 ctx.stop();
-
-                // don't try to send a ping
                 return;
             }
 
@@ -45,17 +35,9 @@ impl Client {
 impl Actor for Client {
     type Context = ws::WebsocketContext<Self>;
 
-    /// Method is called on actor start.
-    /// We register ws session with ChatServer
     fn started(&mut self, ctx: &mut Self::Context) {
-        // we'll start heartbeat process on session start.
         self.hb(ctx);
 
-        // register self in chat server. `AsyncContext::wait` register
-        // future within context, but context waits until this future resolves
-        // before processing any other events.
-        // HttpContext::state() is instance of WsChatSessionState, state is shared
-        // across all routes within application
         let addr = ctx.address();
         self.addr
             .send(server::Connect {
@@ -80,7 +62,6 @@ impl Actor for Client {
     }
 }
 
-/// Handle messages from chat server, we simply send it to peer websocket
 impl Handler<server::MessageWoah> for Client {
     type Result = ();
 
@@ -94,7 +75,6 @@ impl Handler<server::MessageWoah> for Client {
     }
 }
 
-/// WebSocket message handler
 impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Client {
     fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
         let msg = match msg {
@@ -116,14 +96,11 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Client {
             }
             ws::Message::Text(text) => {
                 let m = text.trim();
-                // we check for /sss type of messages
+
                 if m.starts_with('/') {
                     let v: Vec<&str> = m.splitn(2, ' ').collect();
                     match v[0] {
                         "/list" => {
-                            // Send Listlobbies message to chat server and wait for
-                            // response
-                            println!("List lobbies");
                             self.addr
                                 .send(server::ListLobbies)
                                 .into_actor(self)
@@ -135,9 +112,6 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Client {
                                                 .map(|lobby| "\n".to_owned() + &lobby)
                                                 .collect();
                                             ctx.text(format!("/list{lobbies}"));
-                                            // for lobby in lobbies {
-                                            //     ctx.text(lobby);
-                                            // }
                                         }
                                         _ => println!("Something is wrong"),
                                     }
@@ -145,12 +119,9 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Client {
                                 })
                                 .wait(ctx)
                             // .wait(ctx) pauses all events in context,
-                            // so actor wont receive any new messages until it get list
-                            // of lobbies back
                         }
                         "/join" => {
                             if v.len() == 2 {
-                                // self.lobby = v[1].to_owned();
                                 self.addr.do_send(server::Join {
                                     id: self.id,
                                     name: v[1].to_owned(),
@@ -163,27 +134,10 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Client {
                         }
                         "/name" => {
                             if v.len() == 2 {
-                                // self.state.name = v[1].to_owned();
                                 ctx.text("/name\ntrue");
                             } else {
                                 ctx.text("/name\nfalse");
                             }
-                        }
-                        "/update" => {
-                            // if v.len() == 2 {
-                            //     if let Some((x, z)) = v[1].split_once(' ') {
-                            //         // println!("{x},{z}");
-                            //
-                            //         self.addr.do_send(server::Update {
-                            //             id: self.id,
-                            //             state: State {
-                            //                 x: x.parse().unwrap_or_default(),
-                            //                 z: z.parse().unwrap_or_default(),
-                            //             },
-                            //         });
-                            //     }
-                            // } else {
-                            // }
                         }
                         _ => ctx.text(format!("/{m:?}")),
                     }
@@ -191,11 +145,12 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Client {
                 }
             }
             ws::Message::Binary(bytes) => {
-                let in_msg = Update::parse_from_bytes(&bytes).unwrap();
+                let in_msg = protos::Duck::parse_from_bytes(&bytes).unwrap();
                 self.addr.do_send(server::Update {
                     id: self.id,
-                    state: State {
+                    duck: Duck {
                         x: in_msg.x,
+                        y: in_msg.y,
                         z: in_msg.z,
                         rotation: in_msg.rotation,
                     },

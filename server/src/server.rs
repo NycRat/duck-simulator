@@ -1,13 +1,14 @@
-use crate::protos::generated_with_pure::update_sync::UpdateProto;
-use crate::protos::generated_with_pure::update_sync::UpdateSyncProto;
-use crate::state::{self, State};
+use crate::duck::Duck;
+use crate::lobby;
+use crate::protos::protos::protos;
 use protobuf::Message as OtherMessage;
-use std::{
-    collections::{HashMap, HashSet},
-    time::Duration,
-};
+use std::time::UNIX_EPOCH;
+use std::{collections::HashMap, time::Duration};
 
 const UPDATE_SYNC_INTERVAL: Duration = Duration::from_millis(10);
+const BREAD_PER_SECOND: f32 = 3.0;
+const MAX_BREAD: usize = 100000;
+const GAME_DURATION: Duration = Duration::from_secs(120);
 
 use actix::prelude::*;
 use rand::{rngs::ThreadRng, Rng};
@@ -16,47 +17,36 @@ use rand::{rngs::ThreadRng, Rng};
 #[rtype(result = "()")]
 pub struct MessageWoah(pub Option<String>, pub Option<Vec<u8>>);
 
-/// New chat session is created
 #[derive(Message)]
 #[rtype(u32)]
 pub struct Connect {
     pub addr: Recipient<MessageWoah>,
 }
 
-/// Session is disconnected
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct Disconnect {
     pub id: u32,
 }
 
-/// Send message to specific lobby
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct ClientMessage {
-    /// Id of the client session
     pub id: u32,
-    /// Peer message
     pub msg: String,
-    /// lobby name
     pub lobby: String,
 }
 
-/// List of available lobbies
 pub struct ListLobbies;
 
 impl actix::Message for ListLobbies {
     type Result = Vec<String>;
 }
 
-/// Join lobby, if lobby does not exists create new one.
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct Join {
-    /// Client ID
     pub id: u32,
-
-    /// lobby name
     pub name: String,
 }
 
@@ -64,17 +54,14 @@ pub struct Join {
 #[rtype(result = "()")]
 pub struct Update {
     pub id: u32,
-    pub state: state::State,
+    pub duck: Duck,
 }
 
-/// `ChatServer` manages chat lobbies and responsible for coordinating chat session.
-///
-/// Implementation is very naïve.
 #[derive(Debug)]
 pub struct GameServer {
     clients: HashMap<u32, Recipient<MessageWoah>>,
-    states: HashMap<u32, state::State>,
-    lobbies: HashMap<String, HashSet<u32>>,
+    ducks: HashMap<u32, Duck>,
+    lobbies: HashMap<String, lobby::Lobby>,
     rng: ThreadRng,
 }
 
@@ -82,46 +69,99 @@ impl GameServer {
     pub fn new() -> GameServer {
         // default lobby
         let mut lobbies = HashMap::new();
-        lobbies.insert("main".to_owned(), HashSet::new());
-        lobbies.insert("other lobby".to_owned(), HashSet::new());
+        lobbies.insert("main".to_owned(), lobby::Lobby::new());
+        lobbies.insert("main2".to_owned(), lobby::Lobby::new());
 
         GameServer {
             clients: HashMap::new(),
             lobbies,
             rng: rand::thread_rng(),
-            states: HashMap::new(),
+            ducks: HashMap::new(),
         }
     }
 
     fn update_sync(&mut self, ctx: &mut Context<Self>) {
         ctx.run_interval(UPDATE_SYNC_INTERVAL, |act, _ctx| {
-            for (lobby, _) in &act.lobbies {
-                let mut out_msg = UpdateSyncProto::new();
+            let lobbies: Vec<String> = act.lobbies.keys().map(|x| x.to_owned()).collect();
+
+            for lobby_name in &lobbies {
+                let lobby = act.lobbies.get_mut(lobby_name).unwrap();
+
+                {
+                    // UPDATE DUCKS
+                    // let delta_time = lobby.now.elapsed().as_secs_f32();
+                    for id in &lobby.duck_ids {
+                        let duck = act.ducks.get(id).unwrap();
+                        let duck_pos = (duck.x, duck.y, duck.z);
+                        for bread_pos in &lobby.bread {
+                            type Vec3 = (f32, f32, f32);
+                            fn intersect(a: &Vec3, b: &Vec3, a_size: &Vec3, b_size: &Vec3) -> bool {
+                                a.0 - a_size.0 <= b.0 + b_size.0
+                                    && a.0 + a_size.0 >= b.0 - b_size.0
+                                    && a.1 - a_size.1 <= b.1 + b_size.1
+                                    && a.1 + a_size.1 >= b.1 - b_size.1
+                                    && a.2 - a_size.2 <= b.2 + b_size.2
+                                    && a.2 + a_size.2 >= b.2 - b_size.2
+                            }
+
+                            if intersect(bread_pos, bread_pos, bread_pos, bread_pos) {}
+                        }
+                        // if intersect((duck.x, duck.y, duck.z), (), a_size, b_size) {
+                        //
+                        // }
+
+                        // let delta_x = f32::sin(duck.rotation) * 3.0;
+                        // let delta_z = f32::cos(duck.rotation) * 3.0;
+                        // duck.x += delta_x * delta_time;
+                        // duck.z += delta_z * delta_time;
+                    }
+                }
+
+                let mut out_msg = protos::UpdateSync::new();
                 out_msg.ducks = act
-                    .states
+                    .ducks
                     .iter()
                     .map(|(id, state)| {
-                        let mut a = UpdateProto::new();
-                        a.id = *id;
-                        a.x = state.x;
-                        a.z = state.z;
-                        a.rotation = state.rotation;
-                        a
+                        let mut duck = protos::Duck::new();
+                        duck.id = *id;
+                        duck.x = state.x;
+                        duck.y = state.y;
+                        duck.z = state.z;
+                        duck.rotation = state.rotation;
+                        duck
                     })
                     .collect();
 
+                if act.rng.gen_range(0.0..=1.0)
+                    <= (BREAD_PER_SECOND * UPDATE_SYNC_INTERVAL.as_secs_f32())
+                    && lobby.bread.len() < MAX_BREAD
+                {
+                    let x = act.rng.gen_range(-5.0..5.0);
+                    let y = 10.0;
+                    let z = act.rng.gen_range(-5.0..5.0);
+
+                    out_msg.bread_x = Some(x);
+                    out_msg.bread_y = Some(y);
+                    out_msg.bread_z = Some(z);
+
+                    lobby.bread.push((x, y, z));
+                }
+
+                lobby.now = std::time::Instant::now();
+
+                out_msg.ts = UNIX_EPOCH.elapsed().unwrap().as_millis() as u64;
+
                 // println!("BINARY: {:?}", out_msg.write_to_bytes().unwrap().size());
-                act.send_message_binary(lobby, out_msg.write_to_bytes().unwrap(), 0);
+                act.send_message_binary(lobby_name, out_msg.write_to_bytes().unwrap(), 0);
             }
         });
     }
 
-    /// Send message to all users in the lobby
     fn send_message(&self, lobby: &str, message: &str, skip_id: u32) {
-        if let Some(sessions) = self.lobbies.get(lobby) {
-            for id in sessions {
+        if let Some(lobby) = self.lobbies.get(lobby) {
+            for id in &lobby.duck_ids {
                 if *id != skip_id {
-                    if let Some(addr) = self.clients.get(id) {
+                    if let Some(addr) = self.clients.get(&id) {
                         addr.do_send(MessageWoah(Some(message.to_owned()), None));
                     }
                 }
@@ -130,10 +170,10 @@ impl GameServer {
     }
 
     fn send_message_binary(&self, lobby: &str, message: Vec<u8>, skip_id: u32) {
-        if let Some(sessions) = self.lobbies.get(lobby) {
-            for id in sessions {
+        if let Some(lobby) = self.lobbies.get(lobby) {
+            for id in &lobby.duck_ids {
                 if *id != skip_id {
-                    if let Some(addr) = self.clients.get(id) {
+                    if let Some(addr) = self.clients.get(&id) {
                         addr.do_send(MessageWoah(None, Some(message.clone())));
                     }
                 }
@@ -142,10 +182,7 @@ impl GameServer {
     }
 }
 
-/// Make actor from `ChatServer`
 impl Actor for GameServer {
-    /// We are going to use simple Context, we just need ability to communicate
-    /// with other actors.
     type Context = Context<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
@@ -153,25 +190,20 @@ impl Actor for GameServer {
     }
 }
 
-/// Handler for Connect message.
-///
-/// Register new session and assign unique id to this session
 impl Handler<Connect> for GameServer {
     type Result = u32;
 
     fn handle(&mut self, msg: Connect, _: &mut Context<Self>) -> Self::Result {
-        // register session with random id
         let id = self.rng.gen::<u32>();
 
         msg.addr
             .do_send(MessageWoah(Some(format!("/id\n{id}").to_owned()), None));
-
         {
-            // JOIN EVERYONE ELSE
             let other_ids: String = self
                 .lobbies
                 .get("main")
-                .unwrap_or(&HashSet::new())
+                .unwrap()
+                .duck_ids
                 .iter()
                 .map(|x| format!("\n{x}"))
                 .collect();
@@ -183,20 +215,18 @@ impl Handler<Connect> for GameServer {
         }
 
         self.clients.insert(id, msg.addr);
-        self.states.insert(
+        self.ducks.insert(
             id,
-            State {
+            Duck {
                 x: 0.0,
+                y: 0.0,
                 z: 0.0,
                 rotation: 0.0,
             },
         );
 
         // auto join session to main lobby
-        self.lobbies
-            .entry("main".to_owned())
-            .or_default()
-            .insert(id);
+        self.lobbies.get_mut("main").unwrap().duck_ids.insert(id);
 
         // notify all users in same lobby
         self.send_message("main", &format!("/join\n{id}"), id);
@@ -206,20 +236,17 @@ impl Handler<Connect> for GameServer {
     }
 }
 
-/// Handler for Disconnect message.
 impl Handler<Disconnect> for GameServer {
     type Result = ();
 
     fn handle(&mut self, msg: Disconnect, _: &mut Context<Self>) {
-        println!("Someone disconnected");
-
         let mut lobbies: Vec<String> = Vec::new();
 
         // remove address
-        if self.clients.remove(&msg.id).is_some() && self.states.remove(&msg.id).is_some() {
+        if self.clients.remove(&msg.id).is_some() && self.ducks.remove(&msg.id).is_some() {
             // remove session from all lobbies
-            for (name, clients) in &mut self.lobbies {
-                if clients.remove(&msg.id) {
+            for (name, lobby) in &mut self.lobbies {
+                if lobby.duck_ids.remove(&msg.id) {
                     lobbies.push(name.to_owned());
                 }
             }
@@ -232,7 +259,6 @@ impl Handler<Disconnect> for GameServer {
     }
 }
 
-/// Handler for Message message.
 impl Handler<ClientMessage> for GameServer {
     type Result = ();
 
@@ -241,7 +267,6 @@ impl Handler<ClientMessage> for GameServer {
     }
 }
 
-/// Handler for `Listlobbies` message.
 impl Handler<ListLobbies> for GameServer {
     type Result = MessageResult<ListLobbies>;
 
@@ -252,8 +277,6 @@ impl Handler<ListLobbies> for GameServer {
     }
 }
 
-/// Join lobby, send disconnect message to old lobby
-/// send join message to new lobby
 impl Handler<Join> for GameServer {
     type Result = ();
 
@@ -262,8 +285,8 @@ impl Handler<Join> for GameServer {
         let mut lobbies = Vec::new();
 
         // remove session from all lobbies
-        for (n, sessions) in &mut self.lobbies {
-            if sessions.remove(&id) {
+        for (n, lobby) in &mut self.lobbies {
+            if lobby.duck_ids.remove(&id) {
                 lobbies.push(n.to_owned());
             }
         }
@@ -272,7 +295,7 @@ impl Handler<Join> for GameServer {
             self.send_message(&lobby, "Someone disconnected", 0);
         }
 
-        self.lobbies.entry(name.clone()).or_default().insert(id);
+        self.lobbies.get_mut(&name).unwrap().duck_ids.insert(id);
 
         self.send_message(&name, "Someone connected", id);
     }
@@ -282,9 +305,9 @@ impl Handler<Update> for GameServer {
     type Result = MessageResult<Update>;
 
     fn handle(&mut self, msg: Update, _: &mut Self::Context) -> Self::Result {
-        match self.states.get_mut(&msg.id) {
+        match self.ducks.get_mut(&msg.id) {
             Some(state) => {
-                *state = msg.state;
+                *state = msg.duck;
             }
             None => {}
         }
