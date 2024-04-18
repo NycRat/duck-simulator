@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+import { RGBELoader } from "three/addons/loaders/RGBELoader.js";
 import Duck from "./duck";
 import Pond from "./pond";
 import Bread from "./bread";
@@ -57,20 +57,17 @@ export default class Game {
     //const ambientLight = new THREE.AmbientLight(0xa0a0a0); // soft white light
     //this.scene.add(ambientLight);
 
-    new RGBELoader()
-      .load( 'sky.hdr', ( texture ) => {
-      
-      	texture.mapping = THREE.EquirectangularReflectionMapping;
-      
-      	this.scene.background = texture;
-      	this.scene.environment = texture;
-      } )
-      
+    new RGBELoader().load("sky.hdr", (texture) => {
+      texture.mapping = THREE.EquirectangularReflectionMapping;
 
-    //const light = new THREE.PointLight(0xffffff, 4, 0, 0.2); 
-    //light.position.set(5, 10, 10); 
-    //light.castShadow = true;
-    //this.scene.add(light);
+      this.scene.background = texture;
+      this.scene.environment = texture;
+    });
+
+    // const light = new THREE.PointLight(0xffffff, 4, 0, 0.2);
+    // light.position.set(5, 10, 10);
+    // light.castShadow = true;
+    // this.scene.add(light);
 
     // const helper = new THREE.CameraHelper(light.shadow.camera);
     // this.scene.add(helper);
@@ -179,11 +176,15 @@ export default class Game {
     }
 
     for (let i = 0; i < self.breadList.length; i++) {
-      if (intersect(self.ducks[0], self.breadList[i])) {
-        self.scene.remove(self.breadList[i]);
+      for (let j = 0; j < self.ducks.length; j++) {
+        if (intersect(self.ducks[j], self.breadList[i])) {
+          self.scene.remove(self.breadList[i]);
 
-        self.breadList[i] = self.breadList[self.breadList.length - 1];
-        self.breadList.pop();
+          self.breadList[i] = self.breadList[self.breadList.length - 1];
+          self.breadList.pop();
+          i--;
+          break;
+        }
       }
     }
   }

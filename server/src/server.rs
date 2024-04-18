@@ -86,30 +86,49 @@ impl GameServer {
 
             for lobby_name in &lobbies {
                 let lobby = act.lobbies.get_mut(lobby_name).unwrap();
-
                 {
-                    // UPDATE DUCKS
-                    // let delta_time = lobby.now.elapsed().as_secs_f32();
+                    let delta_time = lobby.now.elapsed().as_secs_f32();
+
+                    // UPDATE BREAD
+                    for (_, y, _) in &mut lobby.bread {
+                        let gravity = -5.0;
+                        // sqrt(v^2 - 2as) = u
+                        let velocity = -f32::sqrt(f32::abs(2.0 * gravity * (10.0 - *y)));
+                        *y += velocity * delta_time + 0.5 * gravity * delta_time.powi(2);
+                        *y = y.max(0.1);
+                    }
+
+                    // INTERSECTIONS
                     for id in &lobby.duck_ids {
                         let duck = act.ducks.get(id).unwrap();
-                        let duck_pos = (duck.x, duck.y, duck.z);
-                        for bread_pos in &lobby.bread {
+                        let duck_pos = &(duck.x, duck.y, duck.z);
+
+                        let duck_size = &(0.5, 0.5, 0.5);
+                        let bread_size = &(0.2, 0.2, 0.2);
+
+                        let mut i = 0;
+                        while i < lobby.bread.len() {
+                            let bread_pos = lobby.bread.get(i).unwrap();
+
                             type Vec3 = (f32, f32, f32);
                             fn intersect(a: &Vec3, b: &Vec3, a_size: &Vec3, b_size: &Vec3) -> bool {
-                                a.0 - a_size.0 <= b.0 + b_size.0
+                                return a.0 - a_size.0 <= b.0 + b_size.0
                                     && a.0 + a_size.0 >= b.0 - b_size.0
                                     && a.1 - a_size.1 <= b.1 + b_size.1
                                     && a.1 + a_size.1 >= b.1 - b_size.1
                                     && a.2 - a_size.2 <= b.2 + b_size.2
-                                    && a.2 + a_size.2 >= b.2 - b_size.2
+                                    && a.2 + a_size.2 >= b.2 - b_size.2;
                             }
 
-                            if intersect(bread_pos, bread_pos, bread_pos, bread_pos) {}
+                            if intersect(duck_pos, bread_pos, duck_size, bread_size) {
+                                lobby.bread.swap_remove(i);
+                                // println!("REMOVED");
+                            } else {
+                                i += 1;
+                            }
                         }
-                        // if intersect((duck.x, duck.y, duck.z), (), a_size, b_size) {
-                        //
-                        // }
 
+                        // UPDATE DUCKS
                         // let delta_x = f32::sin(duck.rotation) * 3.0;
                         // let delta_z = f32::cos(duck.rotation) * 3.0;
                         // duck.x += delta_x * delta_time;

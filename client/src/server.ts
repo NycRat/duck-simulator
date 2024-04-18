@@ -24,6 +24,7 @@ export default function serverConnect(game: Game) {
         const duckState = new Protos.Duck();
         duckState.setId(game.ducks[0].idd);
         duckState.setX(game.ducks[0].position.x);
+        duckState.setY(game.ducks[0].position.y);
         duckState.setZ(game.ducks[0].position.z);
         duckState.setRotation(game.ducks[0].rotation.y);
 
@@ -95,6 +96,7 @@ export default function serverConnect(game: Game) {
     for (let i = 0; i < ducks.length; i++) {
       const id = ducks[i].getId().toString();
       const x = ducks[i].getX();
+      const y = ducks[i].getY();
       const z = ducks[i].getZ();
       const rotation = ducks[i].getRotation();
 
@@ -104,6 +106,7 @@ export default function serverConnect(game: Game) {
       for (const duck of game.ducks) {
         if (id === duck.idd) {
           duck.position.x = x;
+          duck.position.y = y;
           duck.position.z = z;
           duck.rotation.y = rotation;
           duck.direction = rotation;
