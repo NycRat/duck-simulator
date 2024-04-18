@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 import Duck from "./duck";
 import Pond from "./pond";
 import Bread from "./bread";
@@ -53,13 +54,23 @@ export default class Game {
     this.pond = new Pond();
     this.scene.add(this.pond);
 
-    const ambientLight = new THREE.AmbientLight(0xa0a0a0); // soft white light
-    this.scene.add(ambientLight);
+    //const ambientLight = new THREE.AmbientLight(0xa0a0a0); // soft white light
+    //this.scene.add(ambientLight);
 
-    const light = new THREE.PointLight(0xffffff, 4, 0, 0.2);
-    light.position.set(5, 10, 10);
-    light.castShadow = true;
-    this.scene.add(light);
+    new RGBELoader()
+      .load( 'sky.hdr', ( texture ) => {
+      
+      	texture.mapping = THREE.EquirectangularReflectionMapping;
+      
+      	this.scene.background = texture;
+      	this.scene.environment = texture;
+      } )
+      
+
+    //const light = new THREE.PointLight(0xffffff, 4, 0, 0.2); 
+    //light.position.set(5, 10, 10); 
+    //light.castShadow = true;
+    //this.scene.add(light);
 
     // const helper = new THREE.CameraHelper(light.shadow.camera);
     // this.scene.add(helper);
