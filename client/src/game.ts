@@ -42,32 +42,33 @@ export default class Game {
     }
 
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // default THREE.PCFShadowMap
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     document.body.appendChild(this.renderer.domElement);
 
     this.breadList = [];
 
-    this.ducks = [new Duck()];
+    this.ducks = [new Duck("ME")];
     this.scene.add(this.ducks[0]);
 
     this.pond = new Pond();
     this.scene.add(this.pond);
 
-    //const ambientLight = new THREE.AmbientLight(0xa0a0a0); // soft white light
-    //this.scene.add(ambientLight);
+    // new RGBELoader().load("sky.hdr", (texture) => {
+    //   texture.mapping = THREE.EquirectangularReflectionMapping;
+    //   this.scene.background = texture;
+    //   this.scene.environment = texture;
+    // });
 
-    new RGBELoader().load("sky.hdr", (texture) => {
-      texture.mapping = THREE.EquirectangularReflectionMapping;
+    const ambientLight = new THREE.AmbientLight(0xa0a0a0);
+    this.scene.add(ambientLight);
 
-      this.scene.background = texture;
-      this.scene.environment = texture;
-    });
+    const light = new THREE.PointLight(0xffffff, 4, 0, 0.2);
+    light.position.set(5, 10, 10);
+    light.castShadow = true;
+    light.shadow.bias = -0.001;
 
-    // const light = new THREE.PointLight(0xffffff, 4, 0, 0.2);
-    // light.position.set(5, 10, 10);
-    // light.castShadow = true;
-    // this.scene.add(light);
+    this.scene.add(light);
 
     // const helper = new THREE.CameraHelper(light.shadow.camera);
     // this.scene.add(helper);
@@ -140,6 +141,8 @@ export default class Game {
 
     for (const duck of self.ducks) {
       duck.update(deltaTime);
+      duck.nameText.lookAt(self.camera.position);
+      duck.updateScore();
     }
 
     // self.ducks[0].update(deltaTime);
@@ -178,6 +181,7 @@ export default class Game {
     for (let i = 0; i < self.breadList.length; i++) {
       for (let j = 0; j < self.ducks.length; j++) {
         if (intersect(self.ducks[j], self.breadList[i])) {
+          self.ducks[j].score++;
           self.scene.remove(self.breadList[i]);
 
           self.breadList[i] = self.breadList[self.breadList.length - 1];

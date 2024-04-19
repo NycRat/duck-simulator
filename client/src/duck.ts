@@ -1,13 +1,17 @@
 import * as THREE from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { GLTFLoader } from "three/examples/jsm/Addons.js";
+import { Text } from "troika-three-text";
 
 export default class Duck extends THREE.Group {
   direction: number;
   deltaDirection: number;
   size: THREE.Vector3;
   idd: string;
+  nameText: Text;
+  duckName: string;
+  score: number;
 
-  constructor() {
+  constructor(duckName: string) {
     super();
     const loader = new GLTFLoader();
     loader.load(
@@ -16,6 +20,7 @@ export default class Duck extends THREE.Group {
         glb.scene.castShadow = true;
         glb.scene.traverse(function (child) {
           child.castShadow = true;
+          child.receiveShadow = true;
         });
         this.add(glb.scene);
       },
@@ -25,12 +30,27 @@ export default class Duck extends THREE.Group {
       },
     );
 
+    this.duckName = duckName;
+
+    this.nameText = new Text();
+    this.add(this.nameText);
+
+    this.nameText.text = duckName + "\n0";
+    this.nameText.textAlign = "center";
+    this.nameText.fontSize = 0.2;
+    this.nameText.anchorX = "center";
+    this.nameText.position.y = 2;
+    this.nameText.color = 0xffffff;
+
+    this.nameText.sync();
+
     this.direction = Math.PI;
     this.deltaDirection = 0;
 
     this.size = new THREE.Vector3(1, 1, 1);
     this.size.multiplyScalar(0.5);
     this.idd = "";
+    this.score = 0;
   }
 
   update(deltaTime: number) {
@@ -52,5 +72,9 @@ export default class Duck extends THREE.Group {
     if (Math.abs(this.position.z) > 5) {
       this.position.setZ(5 * Math.sign(this.position.z));
     }
+  }
+
+  updateScore() {
+    this.nameText.text = this.duckName + "\n" + this.score;
   }
 }

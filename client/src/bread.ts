@@ -13,7 +13,7 @@ export default class Bread extends THREE.Group {
       (glb) => {
         glb.scene.castShadow = true;
         glb.scene.traverse(function (child) {
-          // child.castShadow = true;
+          child.castShadow = true;
           child.receiveShadow = true;
         });
         this.add(glb.scene);
