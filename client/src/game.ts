@@ -54,11 +54,11 @@ export default class Game {
     this.pond = new Pond();
     this.scene.add(this.pond);
 
-    // new RGBELoader().load("sky.hdr", (texture) => {
-    //   texture.mapping = THREE.EquirectangularReflectionMapping;
-    //   this.scene.background = texture;
-    //   this.scene.environment = texture;
-    // });
+    new RGBELoader().load("sky.hdr", (texture) => {
+      texture.mapping = THREE.EquirectangularReflectionMapping;
+      this.scene.background = texture;
+    //  this.scene.environment = texture;
+    });
 
     const ambientLight = new THREE.AmbientLight(0xa0a0a0);
     this.scene.add(ambientLight);
