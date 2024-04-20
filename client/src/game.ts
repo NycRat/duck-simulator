@@ -1,5 +1,4 @@
 import * as THREE from "three";
-import { RGBELoader } from "three/addons/loaders/RGBELoader.js";
 import Duck from "./duck";
 import Pond from "./pond";
 import Bread from "./bread";
@@ -49,6 +48,7 @@ export default class Game {
     this.breadList = [];
 
     this.ducks = [new Duck("ME")];
+    this.ducks[0].updateScore();
     this.scene.add(this.ducks[0]);
 
     this.pond = new Pond();
@@ -151,7 +151,7 @@ export default class Game {
 
     self.camera.position.set(
       -Math.sin(self.ducks[0].direction) * 5,
-      1.5,
+      4,
       -Math.cos(self.ducks[0].direction) * 5,
     );
     self.camera.position.add(self.ducks[0].position);
