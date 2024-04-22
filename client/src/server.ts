@@ -1,7 +1,7 @@
 import Game from "./game";
-import Duck from "./duck";
+import Duck from "./objects/duck";
 import Protos from "../protos_pb";
-import Bread from "./bread";
+import Bread from "./objects/bread";
 
 export default function serverConnect(game: Game) {
   var socket: WebSocket | null = null;

@@ -1,8 +1,9 @@
 import * as THREE from "three";
-import Duck from "./duck";
-import Pond from "./pond";
-import Bread from "./bread";
+import Duck from "./objects/duck";
+import Pond from "./objects/pond";
+import Bread from "./objects/bread";
 import { Sky } from "three/examples/jsm/Addons.js";
+import { POV } from "./options";
 
 export default class Game {
   clock: THREE.Clock;
@@ -14,6 +15,7 @@ export default class Game {
   pond: Pond;
   breadList: Bread[];
   offlineMode: boolean;
+  pov: POV;
 
   constructor() {
     this.clock = new THREE.Clock();
@@ -51,6 +53,7 @@ export default class Game {
 
     this.breadList = [];
     this.offlineMode = true;
+    this.pov = POV.THIRD_PERSON;
 
     this.ducks = [new Duck("ME")];
     this.ducks[0].updateScore();
@@ -76,7 +79,6 @@ export default class Game {
     // this.scene.add(light);
 
     // TEMP
-    const sun = new THREE.Vector3();
 
     const sky = new Sky();
     sky.scale.setScalar(10000);
@@ -93,25 +95,26 @@ export default class Game {
     let renderTarget: THREE.WebGLRenderTarget<THREE.Texture> | undefined;
     let self = this;
 
-    function updateSun() {
+    function updateSun(sky1: Sky) {
+      const sun = new THREE.Vector3();
       const phi = THREE.MathUtils.degToRad(90 - 1);
       const theta = THREE.MathUtils.degToRad(120);
 
       sun.setFromSphericalCoords(1, phi, theta);
 
-      sky.material.uniforms["sunPosition"].value.copy(sun);
+      sky1.material.uniforms["sunPosition"].value.copy(sun);
       self.pond.material.uniforms["sunDirection"].value.copy(sun).normalize();
 
       if (renderTarget !== undefined) renderTarget.dispose();
 
-      sceneEnv.add(sky);
+      sceneEnv.add(sky1);
       renderTarget = pmremGenerator.fromScene(sceneEnv);
-      self.scene.add(sky);
+      self.scene.add(sky1);
 
       self.scene.environment = renderTarget.texture;
     }
 
-    updateSun();
+    updateSun(sky);
 
     this.init();
   }
@@ -131,6 +134,7 @@ export default class Game {
     };
 
     window.addEventListener("keydown", (event) => {
+      console.log("HA");
       self.pressedKeys.set(event.key, true);
     });
     window.addEventListener("keyup", (event) => {
@@ -187,23 +191,64 @@ export default class Game {
       duck.updateScore();
     }
 
-    // self.ducks[0].update(deltaTime);
-
     self.handleCollisions();
 
-    self.camera.position.set(
-      -Math.sin(self.ducks[0].direction) * 5,
-      4,
-      -Math.cos(self.ducks[0].direction) * 5,
-    );
-    self.camera.position.add(self.ducks[0].position);
+    const updateCamera = () => {
+      if (self.pov === POV.FIRST_PERSON) {
+        self.camera.position.set(0, 1, 0);
+        self.camera.position.add(self.ducks[0].position);
 
-    const lookat = new THREE.Vector3(
-      self.ducks[0].position.x + 2 * Math.sin(self.ducks[0].direction),
-      self.ducks[0].position.y,
-      self.ducks[0].position.z + 2 * Math.cos(self.ducks[0].direction),
-    );
-    self.camera.lookAt(lookat);
+        const lookat = new THREE.Vector3(
+          self.ducks[0].position.x + 200 * Math.sin(self.ducks[0].direction),
+          self.ducks[0].position.y,
+          self.ducks[0].position.z + 200 * Math.cos(self.ducks[0].direction),
+        );
+        self.camera.lookAt(lookat);
+      } else if (self.pov === POV.SECOND_PERSON) {
+        self.camera.position.set(
+          Math.sin(self.ducks[0].direction) * 5,
+          4,
+          Math.cos(self.ducks[0].direction) * 5,
+        );
+        self.camera.position.add(self.ducks[0].position);
+
+        const lookat = new THREE.Vector3(
+          self.ducks[0].position.x - 2 * Math.sin(self.ducks[0].direction),
+          self.ducks[0].position.y,
+          self.ducks[0].position.z - 2 * Math.cos(self.ducks[0].direction),
+        );
+        self.camera.lookAt(lookat);
+      } else if (self.pov === POV.THIRD_PERSON) {
+        self.camera.position.set(
+          -Math.sin(self.ducks[0].direction) * 5,
+          4,
+          -Math.cos(self.ducks[0].direction) * 5,
+        );
+        self.camera.position.add(self.ducks[0].position);
+
+        const lookat = new THREE.Vector3(
+          self.ducks[0].position.x + 2 * Math.sin(self.ducks[0].direction),
+          self.ducks[0].position.y,
+          self.ducks[0].position.z + 2 * Math.cos(self.ducks[0].direction),
+        );
+        self.camera.lookAt(lookat);
+      } else {
+        self.camera.position.set(
+          -Math.sin(self.ducks[0].direction) * 5,
+          30,
+          -Math.cos(self.ducks[0].direction) * 5,
+        );
+        self.camera.position.add(self.ducks[0].position);
+
+        const lookat = new THREE.Vector3(
+          self.ducks[0].position.x + 0.1 * Math.sin(self.ducks[0].direction),
+          self.ducks[0].position.y,
+          self.ducks[0].position.z + 0.1 * Math.cos(self.ducks[0].direction),
+        );
+        self.camera.lookAt(lookat);
+      }
+    };
+    updateCamera();
   }
 
   handleCollisions() {
@@ -248,6 +293,18 @@ export default class Game {
       if (right) {
         self.ducks[0].deltaDirection = -3;
       }
+    }
+
+    const r = self.pressedKeys.get("r");
+    if (r) {
+      self.pressedKeys.set("r", false);
+      self.pov = (self.pov + 1) % 4;
+      if (self.pov === POV.FIRST_PERSON) {
+        self.ducks[0].visible = false;
+      } else {
+        self.ducks[0].visible = true;
+      }
+      // console.log(POV[self.pov]);
     }
   }
 }

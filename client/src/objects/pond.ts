@@ -4,8 +4,8 @@ import { Water } from "three/examples/jsm/Addons.js";
 export default class Pond extends Water {
   constructor() {
     super(new THREE.PlaneGeometry(10000, 10000), {
-      textureWidth: 512,
-      textureHeight: 512,
+      textureWidth: 2048,
+      textureHeight: 2048,
       waterNormals: new THREE.TextureLoader().load(
         "waternormals.jpg",
         function (texture) {
