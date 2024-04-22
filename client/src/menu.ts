@@ -1,5 +1,6 @@
 import Game from "./game";
 import { GameMode } from "./options";
+import serverConnect from "./server";
 
 export function initializeMenu(game: Game) {
   const menu = document.getElementById("menu");
@@ -11,7 +12,7 @@ export function initializeMenu(game: Game) {
     ev.preventDefault();
     game.gameMode = GameMode.OFFLINE;
     menu.style.display = "none";
-    console.log(menu.style);
+    serverConnect(game);
   });
 
   // const canvas = game.renderer.domElement;

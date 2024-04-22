@@ -1,6 +1,5 @@
 import WebGL from "three/addons/capabilities/WebGL.js";
 import Game from "./game";
-import serverConnect from "./server";
 import { initializeMenu } from "./menu";
 
 window.oncontextmenu = () => {
@@ -16,7 +15,6 @@ function startGame() {
 
   const game = new Game();
   game.update(game);
-  serverConnect(game);
 
   initializeMenu(game);
 }

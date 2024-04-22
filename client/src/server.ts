@@ -19,6 +19,7 @@ export default function serverConnect(game: Game) {
 
   socket.addEventListener("open", (_event) => {
     game.gameMode = GameMode.ONLINE;
+    game.ducks[0].nameText.visible = true;
     if (!socket) {
       return;
     }
@@ -66,10 +67,10 @@ export default function serverConnect(game: Game) {
       } else if (data[0] === "/id") {
         game.ducks[0].idd = data[1];
       } else if (data[0] === "/join") {
-        console.log(data);
         for (let i = 1; i < data.length; i++) {
           game.ducks.push(new Duck(data[i]));
           game.ducks[game.ducks.length - 1].idd = data[i];
+          game.ducks[game.ducks.length - 1].nameText.visible = true;
           game.scene.add(game.ducks[game.ducks.length - 1]);
         }
       } else {

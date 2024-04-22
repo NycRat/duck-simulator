@@ -291,8 +291,8 @@ export default class Game {
 
   handleInput() {
     const self = this;
-    const left = self.pressedKeys.get("ArrowLeft");
-    const right = self.pressedKeys.get("ArrowRight");
+    const left = self.pressedKeys.get("ArrowLeft") || self.pressedKeys.get("a");
+    const right = self.pressedKeys.get("ArrowRight") || self.pressedKeys.get("d");
     if ((!left && !right) || (left && right)) {
       self.ducks[0].deltaDirection = 0;
     } else {
