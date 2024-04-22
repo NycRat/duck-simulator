@@ -4,4 +4,5 @@ pub struct Duck {
     pub y: f32,
     pub z: f32,
     pub rotation: f32,
+    pub score: u32,
 }

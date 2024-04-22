@@ -153,6 +153,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Client {
                         y: in_msg.y,
                         z: in_msg.z,
                         rotation: in_msg.rotation,
+                        score: 0,
                     },
                 });
                 // println!("{in_msg}");

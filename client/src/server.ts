@@ -12,7 +12,12 @@ export default function serverConnect(game: Game) {
 
   socket = new WebSocket(wsUri);
 
+  socket.addEventListener("error", (_event) => {
+    game.offlineMode = true;
+  });
+
   socket.addEventListener("open", (_event) => {
+    game.offlineMode = false;
     if (!socket) {
       return;
     }
@@ -32,6 +37,7 @@ export default function serverConnect(game: Game) {
       }
     }, 10);
   });
+
   socket.addEventListener("message", (event: MessageEvent<string>) => {
     if (typeof event.data !== "string") {
       return;
@@ -99,10 +105,13 @@ export default function serverConnect(game: Game) {
       const y = ducks[i].getY();
       const z = ducks[i].getZ();
       const rotation = ducks[i].getRotation();
+      const score = ducks[i].getScore();
 
       if (id === game.ducks[0].idd) {
+        game.ducks[0].score = score;
         continue;
       }
+
       for (const duck of game.ducks) {
         if (id === duck.idd) {
           duck.position.x = x;
@@ -110,6 +119,7 @@ export default function serverConnect(game: Game) {
           duck.position.z = z;
           duck.rotation.y = rotation;
           duck.direction = rotation;
+          duck.score = score;
           break;
         }
       }

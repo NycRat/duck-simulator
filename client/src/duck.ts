@@ -1,6 +1,8 @@
 import * as THREE from "three";
-import { GLTFLoader } from "three/examples/jsm/Addons.js";
+import { GLTF, GLTFLoader } from "three/examples/jsm/Addons.js";
 import { Text } from "troika-three-text";
+
+let duck_glb: GLTF;
 
 export default class Duck extends THREE.Group {
   direction: number;
@@ -13,24 +15,31 @@ export default class Duck extends THREE.Group {
 
   constructor(duckName: string) {
     super();
-    const loader = new GLTFLoader();
-    loader.load(
-      "duck.glb",
-      (glb) => {
-        glb.scene.castShadow = true;
-        glb.scene.traverse(function (child) {
-          child.castShadow = true;
-          child.receiveShadow = true;
-        });
-        this.add(glb.scene);
-      },
-      undefined,
-      (err) => {
-        console.error(err);
-      },
-    );
+
+    if (duck_glb) {
+      this.add(duck_glb.scene.clone());
+    } else {
+      const loader = new GLTFLoader();
+      loader.load(
+        "duck.glb",
+        (glb) => {
+          glb.scene.castShadow = true;
+          glb.scene.traverse(function (child) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+          });
+          duck_glb = glb;
+          this.add(duck_glb.scene.clone());
+        },
+        undefined,
+        (err) => {
+          console.error(err);
+        },
+      );
+    }
 
     this.duckName = duckName;
+    this.position.y = -0.1;
 
     this.nameText = new Text();
     this.add(this.nameText);

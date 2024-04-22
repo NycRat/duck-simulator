@@ -101,7 +101,8 @@ proto.Duck.toObject = function(includeInstance, msg) {
     rotation: Message.getFloatingPointFieldWithDefault(msg, 2, 0.0),
     x: Message.getFloatingPointFieldWithDefault(msg, 3, 0.0),
     y: Message.getFloatingPointFieldWithDefault(msg, 4, 0.0),
-    z: Message.getFloatingPointFieldWithDefault(msg, 5, 0.0)
+    z: Message.getFloatingPointFieldWithDefault(msg, 5, 0.0),
+    score: Message.getFieldWithDefault(msg, 6, 0)
   };
 
   if (includeInstance) {
@@ -157,6 +158,10 @@ proto.Duck.deserializeBinaryFromReader = function(msg, reader) {
     case 5:
       var value = /** @type {number} */ (reader.readFloat());
       msg.setZ(value);
+      break;
+    case 6:
+      var value = /** @type {number} */ (reader.readUint32());
+      msg.setScore(value);
       break;
     default:
       reader.skipField();
@@ -219,6 +224,13 @@ proto.Duck.serializeBinaryToWriter = function(message, writer) {
   if (f !== 0.0) {
     writer.writeFloat(
       5,
+      f
+    );
+  }
+  f = message.getScore();
+  if (f !== 0) {
+    writer.writeUint32(
+      6,
       f
     );
   }
@@ -312,6 +324,24 @@ proto.Duck.prototype.getZ = function() {
  */
 proto.Duck.prototype.setZ = function(value) {
   return Message.setProto3FloatField(this, 5, value);
+};
+
+
+/**
+ * optional uint32 score = 6;
+ * @return {number}
+ */
+proto.Duck.prototype.getScore = function() {
+  return /** @type {number} */ (Message.getFieldWithDefault(this, 6, 0));
+};
+
+
+/**
+ * @param {number} value
+ * @return {!proto.Duck} returns this
+ */
+proto.Duck.prototype.setScore = function(value) {
+  return Message.setProto3IntField(this, 6, value);
 };
 
 

@@ -1,13 +1,14 @@
 use crate::duck::Duck;
 use crate::lobby;
 use crate::protos::protos::protos;
+use actix_web::body::MessageBody;
 use protobuf::Message as OtherMessage;
 use std::time::UNIX_EPOCH;
 use std::{collections::HashMap, time::Duration};
 
 const UPDATE_SYNC_INTERVAL: Duration = Duration::from_millis(10);
 const BREAD_PER_SECOND: f32 = 3.0;
-const MAX_BREAD: usize = 100000;
+const MAX_BREAD: usize = 500;
 const GAME_DURATION: Duration = Duration::from_secs(120);
 
 use actix::prelude::*;
@@ -100,7 +101,7 @@ impl GameServer {
 
                     // INTERSECTIONS
                     for id in &lobby.duck_ids {
-                        let duck = act.ducks.get(id).unwrap();
+                        let duck = act.ducks.get_mut(id).unwrap();
                         let duck_pos = &(duck.x, duck.y, duck.z);
 
                         let duck_size = &(0.5, 0.5, 0.5);
@@ -122,6 +123,8 @@ impl GameServer {
 
                             if intersect(duck_pos, bread_pos, duck_size, bread_size) {
                                 lobby.bread.swap_remove(i);
+                                duck.score += 1;
+                                println!("{}: {}", id, duck.score);
                                 // println!("REMOVED");
                             } else {
                                 i += 1;
@@ -147,6 +150,7 @@ impl GameServer {
                         duck.y = state.y;
                         duck.z = state.z;
                         duck.rotation = state.rotation;
+                        duck.score = state.score;
                         duck
                     })
                     .collect();
@@ -241,6 +245,7 @@ impl Handler<Connect> for GameServer {
                 y: 0.0,
                 z: 0.0,
                 rotation: 0.0,
+                score: 0,
             },
         );
 
@@ -326,7 +331,10 @@ impl Handler<Update> for GameServer {
     fn handle(&mut self, msg: Update, _: &mut Self::Context) -> Self::Result {
         match self.ducks.get_mut(&msg.id) {
             Some(state) => {
-                *state = msg.duck;
+                state.x = msg.duck.x;
+                state.y = msg.duck.y;
+                state.z = msg.duck.z;
+                state.rotation = msg.duck.rotation;
             }
             None => {}
         }

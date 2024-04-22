@@ -8,6 +8,7 @@ message Duck {
   float x = 3;
   float y = 4;
   float z = 5;
+  uint32 score = 6;
 }
 
 message UpdateSync {

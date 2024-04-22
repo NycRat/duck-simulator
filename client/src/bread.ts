@@ -1,5 +1,7 @@
 import * as THREE from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { GLTF, GLTFLoader } from "three/examples/jsm/Addons.js";
+
+let bread_glb: GLTF;
 
 export default class Bread extends THREE.Group {
   velocityY: number;
@@ -7,22 +9,27 @@ export default class Bread extends THREE.Group {
 
   constructor(x?: number, y?: number, z?: number) {
     super();
-    const loader = new GLTFLoader();
-    loader.load(
-      "bred.glb",
-      (glb) => {
-        glb.scene.castShadow = true;
-        glb.scene.traverse(function (child) {
-          child.castShadow = true;
-          child.receiveShadow = true;
-        });
-        this.add(glb.scene);
-      },
-      undefined,
-      (err) => {
-        console.error(err);
-      },
-    );
+    if (bread_glb) {
+      this.add(bread_glb.scene.clone());
+    } else {
+      const loader = new GLTFLoader();
+      loader.load(
+        "bred.glb",
+        (glb) => {
+          glb.scene.castShadow = true;
+          glb.scene.traverse(function (child) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+          });
+          bread_glb = glb;
+          this.add(bread_glb.scene.clone());
+        },
+        undefined,
+        (err) => {
+          console.error(err);
+        },
+      );
+    }
 
     this.velocityY = 0;
     this.size = new THREE.Vector3(0.2, 0.2, 0.4);
@@ -38,8 +45,8 @@ export default class Bread extends THREE.Group {
   }
 
   update(deltaTime: number) {
-    if (this.position.y <= 0.1) {
-      this.position.setY(0.1);
+    if (this.position.y <= 0) {
+      this.position.setY(0);
       this.velocityY = 0;
       return;
     }

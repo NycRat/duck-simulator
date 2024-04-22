@@ -2,6 +2,7 @@ import * as THREE from "three";
 import Duck from "./duck";
 import Pond from "./pond";
 import Bread from "./bread";
+import { Sky } from "three/examples/jsm/Addons.js";
 
 export default class Game {
   clock: THREE.Clock;
@@ -12,6 +13,7 @@ export default class Game {
   ducks: Duck[];
   pond: Pond;
   breadList: Bread[];
+  offlineMode: boolean;
 
   constructor() {
     this.clock = new THREE.Clock();
@@ -42,10 +44,13 @@ export default class Game {
 
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 0.5;
 
     document.body.appendChild(this.renderer.domElement);
 
     this.breadList = [];
+    this.offlineMode = true;
 
     this.ducks = [new Duck("ME")];
     this.ducks[0].updateScore();
@@ -54,24 +59,59 @@ export default class Game {
     this.pond = new Pond();
     this.scene.add(this.pond);
 
-    new RGBELoader().load("sky.hdr", (texture) => {
-      texture.mapping = THREE.EquirectangularReflectionMapping;
-      this.scene.background = texture;
-    //  this.scene.environment = texture;
-    });
+    // new RGBELoader().load("sky.hdr", (texture) => {
+    //   texture.mapping = THREE.EquirectangularReflectionMapping;
+    //   this.scene.background = texture;
+    // //  this.scene.environment = texture;
+    // });
 
-    const ambientLight = new THREE.AmbientLight(0xa0a0a0);
-    this.scene.add(ambientLight);
+    // const ambientLight = new THREE.AmbientLight(0xa0a0a0);
+    // this.scene.add(ambientLight);
+    //
+    // const light = new THREE.PointLight(0xffffff, 4, 0, 0.2);
+    // light.position.set(5, 10, 10);
+    // light.castShadow = true;
+    // light.shadow.bias = -0.001;
+    //
+    // this.scene.add(light);
 
-    const light = new THREE.PointLight(0xffffff, 4, 0, 0.2);
-    light.position.set(5, 10, 10);
-    light.castShadow = true;
-    light.shadow.bias = -0.001;
+    // TEMP
+    const sun = new THREE.Vector3();
 
-    this.scene.add(light);
+    const sky = new Sky();
+    sky.scale.setScalar(10000);
+    const skyUniforms = sky.material.uniforms;
 
-    // const helper = new THREE.CameraHelper(light.shadow.camera);
-    // this.scene.add(helper);
+    skyUniforms["turbidity"].value = 100;
+    skyUniforms["rayleigh"].value = 3;
+    skyUniforms["mieCoefficient"].value = 0.005;
+    skyUniforms["mieDirectionalG"].value = 0.8;
+
+    const pmremGenerator = new THREE.PMREMGenerator(this.renderer);
+    const sceneEnv = new THREE.Scene();
+
+    let renderTarget: THREE.WebGLRenderTarget<THREE.Texture> | undefined;
+    let self = this;
+
+    function updateSun() {
+      const phi = THREE.MathUtils.degToRad(90 - 1);
+      const theta = THREE.MathUtils.degToRad(120);
+
+      sun.setFromSphericalCoords(1, phi, theta);
+
+      sky.material.uniforms["sunPosition"].value.copy(sun);
+      self.pond.material.uniforms["sunDirection"].value.copy(sun).normalize();
+
+      if (renderTarget !== undefined) renderTarget.dispose();
+
+      sceneEnv.add(sky);
+      renderTarget = pmremGenerator.fromScene(sceneEnv);
+      self.scene.add(sky);
+
+      self.scene.environment = renderTarget.texture;
+    }
+
+    updateSun();
 
     this.init();
   }
@@ -130,9 +170,11 @@ export default class Game {
 
     self.handleInput();
 
-    if (Math.random() < 0.1) {
-      // self.bread.push(new Bread());
-      // self.scene.add(self.bread[self.bread.length - 1]);
+    self.pond.update(deltaTime);
+
+    if (Math.random() <= 5 * deltaTime && self.offlineMode) {
+      self.breadList.push(new Bread());
+      self.scene.add(self.breadList[self.breadList.length - 1]);
     }
 
     for (let i = 0; i < self.breadList.length; i++) {
