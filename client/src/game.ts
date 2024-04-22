@@ -3,7 +3,7 @@ import Duck from "./objects/duck";
 import Pond from "./objects/pond";
 import Bread from "./objects/bread";
 import { Sky } from "three/examples/jsm/Addons.js";
-import { POV } from "./options";
+import { GameMode, POV } from "./options";
 
 export default class Game {
   clock: THREE.Clock;
@@ -14,15 +14,15 @@ export default class Game {
   ducks: Duck[];
   pond: Pond;
   breadList: Bread[];
-  offlineMode: boolean;
   pov: POV;
+  gameMode: GameMode;
 
   constructor() {
     this.clock = new THREE.Clock();
     this.pressedKeys = new Map();
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(
-      75,
+      90,
       window.innerWidth / window.innerHeight,
       0.1,
       1000,
@@ -52,7 +52,7 @@ export default class Game {
     document.body.appendChild(this.renderer.domElement);
 
     this.breadList = [];
-    this.offlineMode = true;
+    this.gameMode = GameMode.ZEN;
     this.pov = POV.THIRD_PERSON;
 
     this.ducks = [new Duck("ME")];
@@ -68,9 +68,9 @@ export default class Game {
     // //  this.scene.environment = texture;
     // });
 
-    // const ambientLight = new THREE.AmbientLight(0xa0a0a0);
-    // this.scene.add(ambientLight);
-    //
+    const ambientLight = new THREE.AmbientLight(0xa0a0a0);
+    this.scene.add(ambientLight);
+
     // const light = new THREE.PointLight(0xffffff, 4, 0, 0.2);
     // light.position.set(5, 10, 10);
     // light.castShadow = true;
@@ -97,8 +97,8 @@ export default class Game {
 
     function updateSun(sky1: Sky) {
       const sun = new THREE.Vector3();
-      const phi = THREE.MathUtils.degToRad(90 - 1);
-      const theta = THREE.MathUtils.degToRad(120);
+      const phi = THREE.MathUtils.degToRad(90 - 2);
+      const theta = THREE.MathUtils.degToRad(200);
 
       sun.setFromSphericalCoords(1, phi, theta);
 
@@ -134,7 +134,6 @@ export default class Game {
     };
 
     window.addEventListener("keydown", (event) => {
-      console.log("HA");
       self.pressedKeys.set(event.key, true);
     });
     window.addEventListener("keyup", (event) => {
@@ -170,13 +169,14 @@ export default class Game {
     const deltaTime = self.clock.getDelta();
 
     requestAnimationFrame(() => self.update(self));
+
     self.renderer.render(self.scene, self.camera);
 
     self.handleInput();
 
     self.pond.update(deltaTime);
 
-    if (Math.random() <= 5 * deltaTime && self.offlineMode) {
+    if (Math.random() <= 5 * deltaTime && self.gameMode === GameMode.OFFLINE) {
       self.breadList.push(new Bread());
       self.scene.add(self.breadList[self.breadList.length - 1]);
     }
@@ -189,6 +189,15 @@ export default class Game {
       duck.update(deltaTime);
       duck.nameText.lookAt(self.camera.position);
       duck.updateScore();
+
+      if (self.gameMode !== GameMode.ZEN) {
+        if (Math.abs(duck.position.x) > 5) {
+          duck.position.setX(5 * Math.sign(duck.position.x));
+        }
+        if (Math.abs(duck.position.z) > 5) {
+          duck.position.setZ(5 * Math.sign(duck.position.z));
+        }
+      }
     }
 
     self.handleCollisions();

@@ -4,3 +4,9 @@ export enum POV {
   THIRD_PERSON,
   TOP_DOWN,
 }
+
+export enum GameMode {
+  ZEN,
+  OFFLINE,
+  ONLINE,
+}

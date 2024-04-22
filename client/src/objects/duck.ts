@@ -60,6 +60,8 @@ export default class Duck extends THREE.Group {
     this.size.multiplyScalar(0.5);
     this.idd = "";
     this.score = 0;
+
+    this.nameText.visible = false;
   }
 
   update(deltaTime: number) {
@@ -74,13 +76,6 @@ export default class Duck extends THREE.Group {
 
     this.position.add(deltaPos);
     this.rotation.set(0, this.direction, 0);
-
-    if (Math.abs(this.position.x) > 5) {
-      this.position.setX(5 * Math.sign(this.position.x));
-    }
-    if (Math.abs(this.position.z) > 5) {
-      this.position.setZ(5 * Math.sign(this.position.z));
-    }
   }
 
   updateScore() {

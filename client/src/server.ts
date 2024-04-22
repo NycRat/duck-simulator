@@ -2,6 +2,7 @@ import Game from "./game";
 import Duck from "./objects/duck";
 import Protos from "../protos_pb";
 import Bread from "./objects/bread";
+import { GameMode } from "./options";
 
 export default function serverConnect(game: Game) {
   var socket: WebSocket | null = null;
@@ -13,11 +14,11 @@ export default function serverConnect(game: Game) {
   socket = new WebSocket(wsUri);
 
   socket.addEventListener("error", (_event) => {
-    game.offlineMode = true;
+    game.gameMode = GameMode.ZEN;
   });
 
   socket.addEventListener("open", (_event) => {
-    game.offlineMode = false;
+    game.gameMode = GameMode.ONLINE;
     if (!socket) {
       return;
     }
