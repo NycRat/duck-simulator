@@ -351,7 +351,7 @@ proto.Duck.prototype.setScore = function(value) {
  * @private {!Array<number>}
  * @const
  */
-proto.UpdateSync.repeatedFields_ = [2];
+proto.UpdateSync.repeatedFields_ = [1];
 
 
 
@@ -384,12 +384,11 @@ proto.UpdateSync.prototype.toObject = function(opt_includeInstance) {
  */
 proto.UpdateSync.toObject = function(includeInstance, msg) {
   var f, obj = {
-    ts: Message.getFieldWithDefault(msg, 1, 0),
     ducksList: Message.toObjectList(msg.getDucksList(),
     proto.Duck.toObject, includeInstance),
-    breadX: Message.getFloatingPointFieldWithDefault(msg, 3, 0.0),
-    breadY: Message.getFloatingPointFieldWithDefault(msg, 4, 0.0),
-    breadZ: Message.getFloatingPointFieldWithDefault(msg, 5, 0.0)
+    breadX: Message.getFloatingPointFieldWithDefault(msg, 2, 0.0),
+    breadY: Message.getFloatingPointFieldWithDefault(msg, 3, 0.0),
+    breadZ: Message.getFloatingPointFieldWithDefault(msg, 4, 0.0)
   };
 
   if (includeInstance) {
@@ -427,23 +426,19 @@ proto.UpdateSync.deserializeBinaryFromReader = function(msg, reader) {
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {number} */ (reader.readUint64());
-      msg.setTs(value);
-      break;
-    case 2:
       var value = new proto.Duck;
       reader.readMessage(value,proto.Duck.deserializeBinaryFromReader);
       msg.addDucks(value);
       break;
-    case 3:
+    case 2:
       var value = /** @type {number} */ (reader.readFloat());
       msg.setBreadX(value);
       break;
-    case 4:
+    case 3:
       var value = /** @type {number} */ (reader.readFloat());
       msg.setBreadY(value);
       break;
-    case 5:
+    case 4:
       var value = /** @type {number} */ (reader.readFloat());
       msg.setBreadZ(value);
       break;
@@ -476,19 +471,19 @@ proto.UpdateSync.prototype.serializeBinary = function() {
  */
 proto.UpdateSync.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getTs();
-  if (f !== 0) {
-    writer.writeUint64(
-      1,
-      f
-    );
-  }
   f = message.getDucksList();
   if (f.length > 0) {
     writer.writeRepeatedMessage(
-      2,
+      1,
       f,
       proto.Duck.serializeBinaryToWriter
+    );
+  }
+  f = /** @type {number} */ (Message.getField(message, 2));
+  if (f != null) {
+    writer.writeFloat(
+      2,
+      f
     );
   }
   f = /** @type {number} */ (Message.getField(message, 3));
@@ -505,41 +500,16 @@ proto.UpdateSync.serializeBinaryToWriter = function(message, writer) {
       f
     );
   }
-  f = /** @type {number} */ (Message.getField(message, 5));
-  if (f != null) {
-    writer.writeFloat(
-      5,
-      f
-    );
-  }
 };
 
 
 /**
- * optional uint64 ts = 1;
- * @return {number}
- */
-proto.UpdateSync.prototype.getTs = function() {
-  return /** @type {number} */ (Message.getFieldWithDefault(this, 1, 0));
-};
-
-
-/**
- * @param {number} value
- * @return {!proto.UpdateSync} returns this
- */
-proto.UpdateSync.prototype.setTs = function(value) {
-  return Message.setProto3IntField(this, 1, value);
-};
-
-
-/**
- * repeated Duck ducks = 2;
+ * repeated Duck ducks = 1;
  * @return {!Array<!proto.Duck>}
  */
 proto.UpdateSync.prototype.getDucksList = function() {
   return /** @type{!Array<!proto.Duck>} */ (
-    Message.getRepeatedWrapperField(this, proto.Duck, 2));
+    Message.getRepeatedWrapperField(this, proto.Duck, 1));
 };
 
 
@@ -548,7 +518,7 @@ proto.UpdateSync.prototype.getDucksList = function() {
  * @return {!proto.UpdateSync} returns this
 */
 proto.UpdateSync.prototype.setDucksList = function(value) {
-  return Message.setRepeatedWrapperField(this, 2, value);
+  return Message.setRepeatedWrapperField(this, 1, value);
 };
 
 
@@ -558,7 +528,7 @@ proto.UpdateSync.prototype.setDucksList = function(value) {
  * @return {!proto.Duck}
  */
 proto.UpdateSync.prototype.addDucks = function(opt_value, opt_index) {
-  return Message.addToRepeatedWrapperField(this, 2, opt_value, proto.Duck, opt_index);
+  return Message.addToRepeatedWrapperField(this, 1, opt_value, proto.Duck, opt_index);
 };
 
 
@@ -572,11 +542,11 @@ proto.UpdateSync.prototype.clearDucksList = function() {
 
 
 /**
- * optional float bread_x = 3;
+ * optional float bread_x = 2;
  * @return {number}
  */
 proto.UpdateSync.prototype.getBreadX = function() {
-  return /** @type {number} */ (Message.getFloatingPointFieldWithDefault(this, 3, 0.0));
+  return /** @type {number} */ (Message.getFloatingPointFieldWithDefault(this, 2, 0.0));
 };
 
 
@@ -585,7 +555,7 @@ proto.UpdateSync.prototype.getBreadX = function() {
  * @return {!proto.UpdateSync} returns this
  */
 proto.UpdateSync.prototype.setBreadX = function(value) {
-  return Message.setField(this, 3, value);
+  return Message.setField(this, 2, value);
 };
 
 
@@ -594,7 +564,7 @@ proto.UpdateSync.prototype.setBreadX = function(value) {
  * @return {!proto.UpdateSync} returns this
  */
 proto.UpdateSync.prototype.clearBreadX = function() {
-  return Message.setField(this, 3, undefined);
+  return Message.setField(this, 2, undefined);
 };
 
 
@@ -603,16 +573,16 @@ proto.UpdateSync.prototype.clearBreadX = function() {
  * @return {boolean}
  */
 proto.UpdateSync.prototype.hasBreadX = function() {
-  return Message.getField(this, 3) != null;
+  return Message.getField(this, 2) != null;
 };
 
 
 /**
- * optional float bread_y = 4;
+ * optional float bread_y = 3;
  * @return {number}
  */
 proto.UpdateSync.prototype.getBreadY = function() {
-  return /** @type {number} */ (Message.getFloatingPointFieldWithDefault(this, 4, 0.0));
+  return /** @type {number} */ (Message.getFloatingPointFieldWithDefault(this, 3, 0.0));
 };
 
 
@@ -621,7 +591,7 @@ proto.UpdateSync.prototype.getBreadY = function() {
  * @return {!proto.UpdateSync} returns this
  */
 proto.UpdateSync.prototype.setBreadY = function(value) {
-  return Message.setField(this, 4, value);
+  return Message.setField(this, 3, value);
 };
 
 
@@ -630,7 +600,7 @@ proto.UpdateSync.prototype.setBreadY = function(value) {
  * @return {!proto.UpdateSync} returns this
  */
 proto.UpdateSync.prototype.clearBreadY = function() {
-  return Message.setField(this, 4, undefined);
+  return Message.setField(this, 3, undefined);
 };
 
 
@@ -639,16 +609,16 @@ proto.UpdateSync.prototype.clearBreadY = function() {
  * @return {boolean}
  */
 proto.UpdateSync.prototype.hasBreadY = function() {
-  return Message.getField(this, 4) != null;
+  return Message.getField(this, 3) != null;
 };
 
 
 /**
- * optional float bread_z = 5;
+ * optional float bread_z = 4;
  * @return {number}
  */
 proto.UpdateSync.prototype.getBreadZ = function() {
-  return /** @type {number} */ (Message.getFloatingPointFieldWithDefault(this, 5, 0.0));
+  return /** @type {number} */ (Message.getFloatingPointFieldWithDefault(this, 4, 0.0));
 };
 
 
@@ -657,7 +627,7 @@ proto.UpdateSync.prototype.getBreadZ = function() {
  * @return {!proto.UpdateSync} returns this
  */
 proto.UpdateSync.prototype.setBreadZ = function(value) {
-  return Message.setField(this, 5, value);
+  return Message.setField(this, 4, value);
 };
 
 
@@ -666,7 +636,7 @@ proto.UpdateSync.prototype.setBreadZ = function(value) {
  * @return {!proto.UpdateSync} returns this
  */
 proto.UpdateSync.prototype.clearBreadZ = function() {
-  return Message.setField(this, 5, undefined);
+  return Message.setField(this, 4, undefined);
 };
 
 
@@ -675,7 +645,7 @@ proto.UpdateSync.prototype.clearBreadZ = function() {
  * @return {boolean}
  */
 proto.UpdateSync.prototype.hasBreadZ = function() {
-  return Message.getField(this, 5) != null;
+  return Message.getField(this, 4) != null;
 };
 
 

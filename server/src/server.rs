@@ -3,7 +3,6 @@ use crate::lobby;
 use crate::protos::protos::protos;
 use actix_web::body::MessageBody;
 use protobuf::Message as OtherMessage;
-use std::time::UNIX_EPOCH;
 use std::{collections::HashMap, time::Duration};
 
 const UPDATE_SYNC_INTERVAL: Duration = Duration::from_millis(10);
@@ -86,9 +85,9 @@ impl GameServer {
             let lobbies: Vec<String> = act.lobbies.keys().map(|x| x.to_owned()).collect();
 
             for lobby_name in &lobbies {
-                let lobby = act.lobbies.get_mut(lobby_name).unwrap();
-                {
+                if let Some(lobby) = act.lobbies.get_mut(lobby_name) {
                     let delta_time = lobby.now.elapsed().as_secs_f32();
+                    lobby.now = std::time::Instant::now();
 
                     // UPDATE BREAD
                     for (_, y, _) in &mut lobby.bread {
@@ -124,8 +123,6 @@ impl GameServer {
                             if intersect(duck_pos, bread_pos, duck_size, bread_size) {
                                 lobby.bread.swap_remove(i);
                                 duck.score += 1;
-                                println!("{}: {}", id, duck.score);
-                                // println!("REMOVED");
                             } else {
                                 i += 1;
                             }
@@ -137,45 +134,41 @@ impl GameServer {
                         // duck.x += delta_x * delta_time;
                         // duck.z += delta_z * delta_time;
                     }
+
+                    let mut out_msg = protos::UpdateSync::new();
+                    out_msg.ducks = act
+                        .ducks
+                        .iter()
+                        .map(|(id, state)| {
+                            let mut duck = protos::Duck::new();
+                            duck.id = *id;
+                            duck.x = state.x;
+                            duck.y = state.y;
+                            duck.z = state.z;
+                            duck.rotation = state.rotation;
+                            duck.score = state.score;
+                            duck
+                        })
+                        .collect();
+
+                    if act.rng.gen_range(0.0..=1.0)
+                        <= (BREAD_PER_SECOND * UPDATE_SYNC_INTERVAL.as_secs_f32())
+                        && lobby.bread.len() < MAX_BREAD
+                    {
+                        let x = act.rng.gen_range(-5.0..5.0);
+                        let y = 10.0;
+                        let z = act.rng.gen_range(-5.0..5.0);
+
+                        out_msg.bread_x = Some(x);
+                        out_msg.bread_y = Some(y);
+                        out_msg.bread_z = Some(z);
+
+                        lobby.bread.push((x, y, z));
+                    }
+
+                    println!("BINARY: {:?}", out_msg.write_to_bytes().unwrap().size());
+                    act.send_message_binary(lobby_name, out_msg.write_to_bytes().unwrap(), 0);
                 }
-
-                let mut out_msg = protos::UpdateSync::new();
-                out_msg.ducks = act
-                    .ducks
-                    .iter()
-                    .map(|(id, state)| {
-                        let mut duck = protos::Duck::new();
-                        duck.id = *id;
-                        duck.x = state.x;
-                        duck.y = state.y;
-                        duck.z = state.z;
-                        duck.rotation = state.rotation;
-                        duck.score = state.score;
-                        duck
-                    })
-                    .collect();
-
-                if act.rng.gen_range(0.0..=1.0)
-                    <= (BREAD_PER_SECOND * UPDATE_SYNC_INTERVAL.as_secs_f32())
-                    && lobby.bread.len() < MAX_BREAD
-                {
-                    let x = act.rng.gen_range(-5.0..5.0);
-                    let y = 10.0;
-                    let z = act.rng.gen_range(-5.0..5.0);
-
-                    out_msg.bread_x = Some(x);
-                    out_msg.bread_y = Some(y);
-                    out_msg.bread_z = Some(z);
-
-                    lobby.bread.push((x, y, z));
-                }
-
-                lobby.now = std::time::Instant::now();
-
-                out_msg.ts = UNIX_EPOCH.elapsed().unwrap().as_millis() as u64;
-
-                // println!("BINARY: {:?}", out_msg.write_to_bytes().unwrap().size());
-                act.send_message_binary(lobby_name, out_msg.write_to_bytes().unwrap(), 0);
             }
         });
     }
