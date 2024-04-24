@@ -2,8 +2,8 @@ import * as THREE from "three";
 import Duck from "./objects/duck";
 import Pond from "./objects/pond";
 import Bread from "./objects/bread";
-import { Sky } from "three/examples/jsm/Addons.js";
 import { GameMode, POV } from "./options";
+import Stats from "three/examples/jsm/libs/stats.module.js";
 
 export default class Game {
   clock: THREE.Clock;
@@ -12,10 +12,13 @@ export default class Game {
   camera: THREE.PerspectiveCamera;
   renderer: THREE.WebGLRenderer;
   ducks: Duck[];
-  pond: Pond;
-  breadList: Bread[];
-  pov: POV;
-  gameMode: GameMode;
+  pond: Pond = new Pond();
+  breadList: Bread[] = [];
+  pov: POV = POV.THIRD_PERSON;
+  gameMode: GameMode = GameMode.ZEN;
+  stats: Stats = new Stats();
+  mapSize: number = 100000;
+  mapCircular: boolean = true;
 
   constructor() {
     this.clock = new THREE.Clock();
@@ -47,79 +50,18 @@ export default class Game {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 0.5;
+    this.renderer.toneMappingExposure = 0.2;
 
     document.body.appendChild(this.renderer.domElement);
 
-    this.breadList = [];
-    this.gameMode = GameMode.ZEN;
-    this.pov = POV.THIRD_PERSON;
-
-    this.ducks = [new Duck("ME")];
+    this.ducks = [new Duck("ME", "duck")];
     this.ducks[0].updateScore();
     this.scene.add(this.ducks[0]);
-
-    this.pond = new Pond();
     this.scene.add(this.pond);
-
-    // new RGBELoader().load("sky.hdr", (texture) => {
-    //   texture.mapping = THREE.EquirectangularReflectionMapping;
-    //   this.scene.background = texture;
-    // //  this.scene.environment = texture;
-    // });
-
-    const ambientLight = new THREE.AmbientLight(0xa0a0a0);
-    this.scene.add(ambientLight);
-
-    // const light = new THREE.PointLight(0xffffff, 4, 0, 0.2);
-    // light.position.set(5, 10, 10);
-    // light.castShadow = true;
-    // light.shadow.bias = -0.001;
-    //
-    // this.scene.add(light);
-
-    // TEMP
-
-    const sky = new Sky();
-    sky.scale.setScalar(10000);
-    const skyUniforms = sky.material.uniforms;
-
-    skyUniforms["turbidity"].value = 100;
-    skyUniforms["rayleigh"].value = 3;
-    skyUniforms["mieCoefficient"].value = 0.005;
-    skyUniforms["mieDirectionalG"].value = 0.8;
-
-    const pmremGenerator = new THREE.PMREMGenerator(this.renderer);
-    const sceneEnv = new THREE.Scene();
-
-    let renderTarget: THREE.WebGLRenderTarget<THREE.Texture> | undefined;
-    let self = this;
-
-    function updateSun(sky1: Sky) {
-      const sun = new THREE.Vector3();
-      const phi = THREE.MathUtils.degToRad(90 - 2);
-      const theta = THREE.MathUtils.degToRad(200);
-
-      sun.setFromSphericalCoords(1, phi, theta);
-
-      sky1.material.uniforms["sunPosition"].value.copy(sun);
-      self.pond.material.uniforms["sunDirection"].value.copy(sun).normalize();
-
-      if (renderTarget !== undefined) renderTarget.dispose();
-
-      sceneEnv.add(sky1);
-      renderTarget = pmremGenerator.fromScene(sceneEnv);
-      self.scene.add(sky1);
-
-      self.scene.environment = renderTarget.texture;
-    }
-
-    updateSun(sky);
-
-    this.init();
+    document.body.appendChild(this.stats.dom);
   }
 
-  init() {
+  initControls() {
     const self = this;
 
     const handleTouch = (touch: Touch) => {
@@ -165,12 +107,15 @@ export default class Game {
     });
   }
 
-  update(self: Game) {
-    const deltaTime = self.clock.getDelta();
-
-    requestAnimationFrame(() => self.update(self));
-
+  render(self: Game) {
+    requestAnimationFrame(() => self.render(self));
     self.renderer.render(self.scene, self.camera);
+    this.stats.update();
+  }
+
+  update() {
+    const self = this;
+    const deltaTime = self.clock.getDelta();
 
     self.handleInput();
 
@@ -191,11 +136,22 @@ export default class Game {
       duck.updateScore();
 
       if (self.gameMode !== GameMode.ZEN) {
-        if (Math.abs(duck.position.x) > 5) {
-          duck.position.setX(5 * Math.sign(duck.position.x));
-        }
-        if (Math.abs(duck.position.z) > 5) {
-          duck.position.setZ(5 * Math.sign(duck.position.z));
+        if (self.mapCircular) {
+          const x = duck.position.x;
+          const z = duck.position.z;
+          const c = Math.sqrt(x * x + z * z);
+          if (c > self.mapSize) {
+            const ratio = self.mapSize / c;
+            duck.position.x = x * ratio;
+            duck.position.z = z * ratio;
+          }
+        } else {
+          if (Math.abs(duck.position.x) > self.mapSize) {
+            duck.position.setX(self.mapSize * Math.sign(duck.position.x));
+          }
+          if (Math.abs(duck.position.z) > self.mapSize) {
+            duck.position.setZ(self.mapSize * Math.sign(duck.position.z));
+          }
         }
       }
     }
@@ -292,7 +248,8 @@ export default class Game {
   handleInput() {
     const self = this;
     const left = self.pressedKeys.get("ArrowLeft") || self.pressedKeys.get("a");
-    const right = self.pressedKeys.get("ArrowRight") || self.pressedKeys.get("d");
+    const right =
+      self.pressedKeys.get("ArrowRight") || self.pressedKeys.get("d");
     if ((!left && !right) || (left && right)) {
       self.ducks[0].deltaDirection = 0;
     } else {

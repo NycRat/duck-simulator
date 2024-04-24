@@ -9,4 +9,5 @@ export enum GameMode {
   ZEN,
   OFFLINE,
   ONLINE,
+  SPECTATOR,
 }

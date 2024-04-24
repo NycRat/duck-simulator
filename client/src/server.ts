@@ -14,7 +14,8 @@ export default function serverConnect(game: Game) {
   socket = new WebSocket(wsUri);
 
   socket.addEventListener("error", (_event) => {
-    game.gameMode = GameMode.ZEN;
+    console.error("CANT CONNECT");
+    game.gameMode = GameMode.OFFLINE;
   });
 
   socket.addEventListener("open", (_event) => {
@@ -68,7 +69,7 @@ export default function serverConnect(game: Game) {
         game.ducks[0].idd = data[1];
       } else if (data[0] === "/join") {
         for (let i = 1; i < data.length; i++) {
-          game.ducks.push(new Duck(data[i]));
+          game.ducks.push(new Duck(data[i], "duck"));
           game.ducks[game.ducks.length - 1].idd = data[i];
           game.ducks[game.ducks.length - 1].nameText.visible = true;
           game.scene.add(game.ducks[game.ducks.length - 1]);
@@ -88,9 +89,6 @@ export default function serverConnect(game: Game) {
     const data = Protos.UpdateSync.deserializeBinary(
       new Uint8Array(await event.data.arrayBuffer()),
     );
-
-    // const serverTime = data.getTs();
-    // const deltaTime = new Date().getTime() - serverTime;
 
     if (data.getBreadX() && data.getBreadY() && data.getBreadZ()) {
       game.breadList.push(
