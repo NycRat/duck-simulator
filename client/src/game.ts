@@ -1,9 +1,9 @@
 import * as THREE from "three";
 import Duck from "./objects/duck";
-import Pond from "./objects/pond";
 import Bread from "./objects/bread";
 import { GameMode, POV } from "./options";
 import Stats from "three/examples/jsm/libs/stats.module.js";
+import Pond from "./objects/pond";
 
 export default class Game {
   clock: THREE.Clock;
@@ -12,7 +12,6 @@ export default class Game {
   camera: THREE.PerspectiveCamera;
   renderer: THREE.WebGLRenderer;
   ducks: Duck[];
-  pond: Pond = new Pond();
   breadList: Bread[] = [];
   pov: POV = POV.THIRD_PERSON;
   gameMode: GameMode = GameMode.ZEN;
@@ -36,28 +35,15 @@ export default class Game {
       powerPreference: "high-performance",
     });
 
-    this.renderer.setPixelRatio(window.devicePixelRatio);
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-
-    {
-      // TODO CLEAN THIS UP
-      this.camera.aspect = window.innerWidth / window.innerHeight;
-      this.camera.updateProjectionMatrix();
-
-      this.renderer.setSize(window.innerWidth, window.innerHeight);
-    }
-
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 0.2;
 
     document.body.appendChild(this.renderer.domElement);
 
     this.ducks = [new Duck("ME", "duck")];
     this.ducks[0].updateScore();
     this.scene.add(this.ducks[0]);
-    this.scene.add(this.pond);
     document.body.appendChild(this.stats.dom);
   }
 
@@ -97,14 +83,6 @@ export default class Game {
         handleTouch(event.touches[event.touches.length - 1]);
       }
     });
-
-    window.addEventListener("resize", () => {
-      self.camera.aspect = window.innerWidth / window.innerHeight;
-      self.camera.updateProjectionMatrix();
-
-      self.renderer.setSize(window.innerWidth, window.innerHeight);
-      self.renderer.setPixelRatio(window.devicePixelRatio);
-    });
   }
 
   render(self: Game) {
@@ -117,9 +95,20 @@ export default class Game {
     const self = this;
     const deltaTime = self.clock.getDelta();
 
+    const a = new THREE.Vector2();
+    this.renderer.getSize(a);
+    if (window.innerWidth !== a.width || window.innerHeight !== a.height) {
+      self.camera.aspect = window.innerWidth / window.innerHeight;
+      self.camera.updateProjectionMatrix();
+
+      self.renderer.setSize(window.innerWidth, window.innerHeight);
+      self.renderer.setPixelRatio(window.devicePixelRatio);
+    }
+
     self.handleInput();
 
-    self.pond.update(deltaTime);
+    const pond = self.scene.getObjectByName("pond");
+    (<Pond>pond).update(deltaTime);
 
     if (Math.random() <= 5 * deltaTime && self.gameMode === GameMode.OFFLINE) {
       self.breadList.push(new Bread());
@@ -270,7 +259,6 @@ export default class Game {
       } else {
         self.ducks[0].visible = true;
       }
-      // console.log(POV[self.pov]);
     }
   }
 }

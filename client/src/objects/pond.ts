@@ -18,6 +18,7 @@ export default class Pond extends Water {
       distortionScale: 0.3,
       fog: false,
     });
+    this.name = "pond";
 
     this.rotation.x = -Math.PI / 2;
     this.material.uniforms["size"].value = 1;

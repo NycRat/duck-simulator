@@ -15,7 +15,6 @@ export function initializeMenu(game: Game) {
 
     game.initControls();
     game.gameMode = GameMode.OFFLINE;
-    game.renderer.toneMappingExposure = 0.6;
     serverConnect(game);
   });
 

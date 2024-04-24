@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader, Sky } from "three/examples/jsm/Addons.js";
 import Game from "../game";
+import Pond from "../objects/pond";
 
 export default function initDefaultMap(game: Game) {
   game.mapSize = 11.5;
@@ -19,26 +20,26 @@ export default function initDefaultMap(game: Game) {
 
   let renderTarget: THREE.WebGLRenderTarget<THREE.Texture> | undefined;
 
-  function updateSun(sky1: Sky) {
-    const sun = new THREE.Vector3();
-    const phi = THREE.MathUtils.degToRad(90 - 2);
-    const theta = THREE.MathUtils.degToRad(200);
+  const pond = new Pond();
 
-    sun.setFromSphericalCoords(1, phi, theta);
+  // SUN
+  const sun = new THREE.Vector3();
+  const phi = THREE.MathUtils.degToRad(90 - 2);
+  const theta = THREE.MathUtils.degToRad(200);
 
-    sky1.material.uniforms["sunPosition"].value.copy(sun);
-    game.pond.material.uniforms["sunDirection"].value.copy(sun).normalize();
+  sun.setFromSphericalCoords(1, phi, theta);
 
-    if (renderTarget !== undefined) renderTarget.dispose();
+  sky.material.uniforms["sunPosition"].value.copy(sun);
+  pond.material.uniforms["sunDirection"].value.copy(sun).normalize();
 
-    sceneEnv.add(sky1);
-    renderTarget = pmremGenerator.fromScene(sceneEnv);
-    game.scene.add(sky1);
+  if (renderTarget !== undefined) renderTarget.dispose();
 
-    game.scene.environment = renderTarget.texture;
-  }
+  sceneEnv.add(sky);
+  renderTarget = pmremGenerator.fromScene(sceneEnv);
+  game.scene.add(sky);
+  game.scene.add(pond);
 
-  updateSun(sky);
+  game.scene.environment = renderTarget.texture;
 
   const loader = new GLTFLoader();
   loader.load(
