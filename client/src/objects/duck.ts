@@ -7,13 +7,13 @@ type DuckVariety = "duck" | "rabbit";
 let duck_glbs: Map<DuckVariety, GLTF> = new Map();
 
 export default class Duck extends THREE.Group {
-  direction: number;
-  deltaDirection: number;
+  direction: number = Math.PI;
+  deltaDirection: number = 0;
   size: THREE.Vector3;
-  idd: string;
+  idd: string = "";
   nameText: Text;
   duckName: string;
-  score: number;
+  score: number = 0;
 
   constructor(duckName: string, variety: DuckVariety) {
     super();
@@ -63,15 +63,11 @@ export default class Duck extends THREE.Group {
 
     this.nameText.sync();
 
-    this.direction = Math.PI;
-    this.deltaDirection = 0;
-
     this.size = new THREE.Vector3(1, 1, 1);
     this.size.multiplyScalar(0.5);
-    this.idd = "";
-    this.score = 0;
 
     this.nameText.visible = false;
+    this.rotation.set(0, this.direction, 0);
   }
 
   update(deltaTime: number) {

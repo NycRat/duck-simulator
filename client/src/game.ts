@@ -14,7 +14,7 @@ export default class Game {
   ducks: Duck[];
   breadList: Bread[] = [];
   pov: POV = POV.THIRD_PERSON;
-  gameMode: GameMode = GameMode.ZEN;
+  gameMode: GameMode = GameMode.MENU;
   stats: Stats = new Stats();
   mapSize: number = 100000;
   mapCircular: boolean = true;
@@ -105,10 +105,14 @@ export default class Game {
       self.renderer.setPixelRatio(window.devicePixelRatio);
     }
 
-    self.handleInput();
-
     const pond = self.scene.getObjectByName("pond");
     (<Pond>pond).update(deltaTime);
+
+    if (self.gameMode === GameMode.MENU) {
+      return;
+    }
+
+    self.handleInput();
 
     if (Math.random() <= 5 * deltaTime && self.gameMode === GameMode.OFFLINE) {
       self.breadList.push(new Bread());
@@ -147,62 +151,64 @@ export default class Game {
 
     self.handleCollisions();
 
-    const updateCamera = () => {
-      if (self.pov === POV.FIRST_PERSON) {
-        self.camera.position.set(0, 1, 0);
-        self.camera.position.add(self.ducks[0].position);
+    self.updateCamera();
+  }
 
-        const lookat = new THREE.Vector3(
-          self.ducks[0].position.x + 200 * Math.sin(self.ducks[0].direction),
-          self.ducks[0].position.y,
-          self.ducks[0].position.z + 200 * Math.cos(self.ducks[0].direction),
-        );
-        self.camera.lookAt(lookat);
-      } else if (self.pov === POV.SECOND_PERSON) {
-        self.camera.position.set(
-          Math.sin(self.ducks[0].direction) * 5,
-          4,
-          Math.cos(self.ducks[0].direction) * 5,
-        );
-        self.camera.position.add(self.ducks[0].position);
+  updateCamera() {
+    const self = this;
+    if (self.pov === POV.FIRST_PERSON) {
+      self.camera.position.set(0, 1, 0);
+      self.camera.position.add(self.ducks[0].position);
 
-        const lookat = new THREE.Vector3(
-          self.ducks[0].position.x - 2 * Math.sin(self.ducks[0].direction),
-          self.ducks[0].position.y,
-          self.ducks[0].position.z - 2 * Math.cos(self.ducks[0].direction),
-        );
-        self.camera.lookAt(lookat);
-      } else if (self.pov === POV.THIRD_PERSON) {
-        self.camera.position.set(
-          -Math.sin(self.ducks[0].direction) * 5,
-          4,
-          -Math.cos(self.ducks[0].direction) * 5,
-        );
-        self.camera.position.add(self.ducks[0].position);
+      const lookat = new THREE.Vector3(
+        self.ducks[0].position.x + 200 * Math.sin(self.ducks[0].direction),
+        self.ducks[0].position.y,
+        self.ducks[0].position.z + 200 * Math.cos(self.ducks[0].direction),
+      );
+      self.camera.lookAt(lookat);
+    } else if (self.pov === POV.SECOND_PERSON) {
+      self.camera.position.set(
+        Math.sin(self.ducks[0].direction) * 5,
+        4,
+        Math.cos(self.ducks[0].direction) * 5,
+      );
+      self.camera.position.add(self.ducks[0].position);
 
-        const lookat = new THREE.Vector3(
-          self.ducks[0].position.x + 2 * Math.sin(self.ducks[0].direction),
-          self.ducks[0].position.y,
-          self.ducks[0].position.z + 2 * Math.cos(self.ducks[0].direction),
-        );
-        self.camera.lookAt(lookat);
-      } else {
-        self.camera.position.set(
-          -Math.sin(self.ducks[0].direction) * 5,
-          30,
-          -Math.cos(self.ducks[0].direction) * 5,
-        );
-        self.camera.position.add(self.ducks[0].position);
+      const lookat = new THREE.Vector3(
+        self.ducks[0].position.x - 2 * Math.sin(self.ducks[0].direction),
+        self.ducks[0].position.y,
+        self.ducks[0].position.z - 2 * Math.cos(self.ducks[0].direction),
+      );
+      self.camera.lookAt(lookat);
+    } else if (self.pov === POV.THIRD_PERSON) {
+      self.camera.position.set(
+        -Math.sin(self.ducks[0].direction) * 5,
+        4,
+        -Math.cos(self.ducks[0].direction) * 5,
+      );
+      self.camera.position.add(self.ducks[0].position);
 
-        const lookat = new THREE.Vector3(
-          self.ducks[0].position.x + 0.1 * Math.sin(self.ducks[0].direction),
-          self.ducks[0].position.y,
-          self.ducks[0].position.z + 0.1 * Math.cos(self.ducks[0].direction),
-        );
-        self.camera.lookAt(lookat);
-      }
-    };
-    updateCamera();
+      const lookat = new THREE.Vector3(
+        self.ducks[0].position.x + 2 * Math.sin(self.ducks[0].direction),
+        self.ducks[0].position.y,
+        self.ducks[0].position.z + 2 * Math.cos(self.ducks[0].direction),
+      );
+      self.camera.lookAt(lookat);
+    } else {
+      self.camera.position.set(
+        -Math.sin(self.ducks[0].direction) * 5,
+        30,
+        -Math.cos(self.ducks[0].direction) * 5,
+      );
+      self.camera.position.add(self.ducks[0].position);
+
+      const lookat = new THREE.Vector3(
+        self.ducks[0].position.x + 0.1 * Math.sin(self.ducks[0].direction),
+        self.ducks[0].position.y,
+        self.ducks[0].position.z + 0.1 * Math.cos(self.ducks[0].direction),
+      );
+      self.camera.lookAt(lookat);
+    }
   }
 
   handleCollisions() {

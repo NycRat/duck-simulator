@@ -6,6 +6,7 @@ export enum POV {
 }
 
 export enum GameMode {
+  MENU,
   ZEN,
   OFFLINE,
   ONLINE,

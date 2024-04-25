@@ -15,7 +15,8 @@ function startGame() {
   }
 
   const game = new Game();
-  initializeMap(GameMap.CLOUDS, game);
+  game.updateCamera();
+  initializeMap(GameMap.DEFAULT, game);
   game.renderer.toneMappingExposure = 0.2;
 
   window.setInterval(() => {
