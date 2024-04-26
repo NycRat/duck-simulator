@@ -115,8 +115,21 @@ export default class Game {
     self.handleInput();
 
     if (Math.random() <= 5 * deltaTime && self.gameMode === GameMode.OFFLINE) {
-      self.breadList.push(new Bread());
-      self.scene.add(self.breadList[self.breadList.length - 1]);
+      if (self.mapCircular) {
+        const theta = Math.random() * Math.PI * 2;
+        const r = Math.random() * self.mapSize;
+        self.breadList.push(
+          new Bread(
+            Math.sin(theta) * r,
+            Math.random() * 10 + 5,
+            Math.cos(theta) * r,
+          ),
+        );
+        self.scene.add(self.breadList[self.breadList.length - 1]);
+      } else {
+        self.breadList.push(new Bread());
+        self.scene.add(self.breadList[self.breadList.length - 1]);
+      }
     }
 
     for (let i = 0; i < self.breadList.length; i++) {

@@ -19,7 +19,7 @@ export default function initCloudsMap(game: Game) {
   //
   // game.scene.add(light);
   // game.scene.add(new THREE.PointLightHelper(light, 5));
-  const pond = new Pond();
+  const pond = new Pond(10000);
 
   game.scene.add(pond);
 }

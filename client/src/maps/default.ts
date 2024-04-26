@@ -20,7 +20,16 @@ export default function initDefaultMap(game: Game) {
 
   let renderTarget: THREE.WebGLRenderTarget<THREE.Texture> | undefined;
 
-  const pond = new Pond();
+  const pond = new Pond(15);
+
+  const plane = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), new THREE.MeshStandardMaterial({
+    color: 0xaae77d
+  }));
+
+  plane.rotation.x = -Math.PI * 0.5;
+  plane.position.y = -0.2;
+
+  game.scene.add(plane);
 
   // SUN
   const sun = new THREE.Vector3();
