@@ -22,9 +22,12 @@ export default function initDefaultMap(game: Game) {
 
   const pond = new Pond(15);
 
-  const plane = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), new THREE.MeshStandardMaterial({
-    color: 0xaae77d
-  }));
+  const plane = new THREE.Mesh(
+    new THREE.PlaneGeometry(1000, 1000),
+    new THREE.MeshStandardMaterial({
+      color: 0xaae77d,
+    }),
+  );
 
   plane.rotation.x = -Math.PI * 0.5;
   plane.position.y = -0.2;
