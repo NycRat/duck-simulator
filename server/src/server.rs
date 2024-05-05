@@ -3,7 +3,7 @@ use crate::lobby;
 use crate::protos::protos::protos;
 use actix_web::body::MessageBody;
 use protobuf::Message as OtherMessage;
-use std::{collections::HashMap, time::Duration};
+use std::{collections::HashMap, f32::consts::PI, time::Duration};
 
 const UPDATE_SYNC_INTERVAL: Duration = Duration::from_millis(10);
 const BREAD_PER_SECOND: f32 = 3.0;
@@ -155,9 +155,13 @@ impl GameServer {
                         <= (BREAD_PER_SECOND * UPDATE_SYNC_INTERVAL.as_secs_f32())
                         && lobby.bread.len() < MAX_BREAD
                     {
-                        let x = act.rng.gen_range(-5.0..5.0);
                         let y = 10.0;
-                        let z = act.rng.gen_range(-5.0..5.0);
+
+                        let theta = act.rng.gen_range(0.0..(PI * 2.0));
+                        let r = act.rng.gen_range(0.0..11.5);
+
+                        let x = f32::sin(theta) * r;
+                        let z = f32::cos(theta) * r;
 
                         out_msg.bread_x = Some(x);
                         out_msg.bread_y = Some(y);
@@ -166,7 +170,7 @@ impl GameServer {
                         lobby.bread.push((x, y, z));
                     }
 
-                    println!("BINARY: {:?}", out_msg.write_to_bytes().unwrap().size());
+                    // println!("BINARY: {:?}", out_msg.write_to_bytes().unwrap().size());
                     act.send_message_binary(lobby_name, out_msg.write_to_bytes().unwrap(), 0);
                 }
             }
