@@ -63,5 +63,9 @@ h2 {
   display: none;
 }
 
+#lobby-menu {
+  display: none;
+}
+
 #menu #play {
 }

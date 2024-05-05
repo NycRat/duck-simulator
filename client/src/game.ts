@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import Duck from "./objects/duck";
+import Duck, { DuckVariety } from "./objects/duck";
 import Bread from "./objects/bread";
 import { GameMode, POV } from "./options";
 import Stats from "three/examples/jsm/libs/stats.module.js";
@@ -18,6 +18,8 @@ export default class Game {
   stats: Stats = new Stats();
   mapSize: number = 100000;
   mapCircular: boolean = true;
+
+  showStats = false;
 
   constructor() {
     this.clock = new THREE.Clock();
@@ -41,9 +43,11 @@ export default class Game {
 
     document.body.appendChild(this.renderer.domElement);
 
-    this.ducks = [new Duck("ME", "duck")];
+    this.ducks = [new Duck("ME", DuckVariety.DUCK)];
     this.ducks[0].updateScore();
     this.scene.add(this.ducks[0]);
+
+    this.stats.showPanel(3);
     document.body.appendChild(this.stats.dom);
   }
 

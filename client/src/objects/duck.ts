@@ -2,7 +2,10 @@ import * as THREE from "three";
 import { GLTF, GLTFLoader } from "three/examples/jsm/Addons.js";
 import { Text } from "troika-three-text";
 
-type DuckVariety = "duck" | "rabbit";
+export enum DuckVariety {
+  DUCK,
+  RABBIT,
+}
 
 let duck_glbs: Map<DuckVariety, GLTF> = new Map();
 
@@ -14,9 +17,12 @@ export default class Duck extends THREE.Group {
   nameText: Text;
   duckName: string;
   score: number = 0;
+  variety: DuckVariety;
 
   constructor(duckName: string, variety: DuckVariety) {
     super();
+
+    this.variety = variety;
 
     const duck_glb = duck_glbs.get(variety);
 
@@ -25,19 +31,16 @@ export default class Duck extends THREE.Group {
     } else {
       const loader = new GLTFLoader();
       loader.load(
-        `${variety}.glb`,
+        `${DuckVariety[variety]}.glb`,
         (glb) => {
           glb.scene.castShadow = true;
+          glb.scene.name = "duck";
 
           glb.scene.traverse(function (child) {
             child.castShadow = true;
             child.receiveShadow = true;
-            // @ts-ignore
-            if (child.isMesh) {
-              // @ts-ignore
-              // child.material.color.set(0xffffff * Math.random());
-            }
           });
+
           duck_glbs.set(variety, glb);
           this.add(duck_glbs.get(variety)!.scene.clone());
         },

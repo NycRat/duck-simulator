@@ -18,5 +18,4 @@ const mapInitFunctions: Map<GameMap, (game: Game) => void> = new Map();
 
 export default function initializeMap(map: GameMap, game: Game) {
   mapInitFunctions.get(map)!(game);
-  console.log(game.renderer);
 }

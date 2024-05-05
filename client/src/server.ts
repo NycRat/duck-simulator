@@ -1,5 +1,5 @@
 import Game from "./game";
-import Duck from "./objects/duck";
+import Duck, { DuckVariety } from "./objects/duck";
 import Protos from "../protos_pb";
 import Bread from "./objects/bread";
 import { GameMode } from "./options";
@@ -24,8 +24,8 @@ export default function serverConnect(game: Game) {
     if (!socket) {
       return;
     }
-    socket.send("Hello Server!");
     socket.send("/list");
+    // socket.send("/join ducky");
 
     setInterval(() => {
       if (socket) {
@@ -69,7 +69,7 @@ export default function serverConnect(game: Game) {
         game.ducks[0].idd = data[1];
       } else if (data[0] === "/join") {
         for (let i = 1; i < data.length; i++) {
-          game.ducks.push(new Duck(data[i], "duck"));
+          game.ducks.push(new Duck(data[i], DuckVariety.DUCK));
           game.ducks[game.ducks.length - 1].idd = data[i];
           game.ducks[game.ducks.length - 1].nameText.visible = true;
           game.scene.add(game.ducks[game.ducks.length - 1]);
