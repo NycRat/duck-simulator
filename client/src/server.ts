@@ -1,5 +1,5 @@
 import Game from "./game";
-import Duck, { DuckVariety } from "./objects/duck";
+import Duck from "./objects/duck";
 import Protos from "../protos_pb";
 import Bread from "./objects/bread";
 import { GameMode } from "./options";
@@ -25,6 +25,10 @@ export default function serverConnect(game: Game) {
       return;
     }
     socket.send("/list");
+    socket.send(
+      `/info ${game.ducks[0].duckName} ${game.ducks[0].variety} ${game.ducks[0].color}`,
+    );
+
     // socket.send("/join ducky");
 
     setInterval(() => {
@@ -68,15 +72,14 @@ export default function serverConnect(game: Game) {
       } else if (data[0] === "/id") {
         game.ducks[0].idd = data[1];
       } else if (data[0] === "/join") {
-
-        const div = document.createElement("div");
-        div.innerText = "plead"
-        document.getElementById("lobby-duck-list")?.appendChild(div);
-
-
         for (let i = 1; i < data.length; i++) {
-          game.ducks.push(new Duck(data[i], DuckVariety.DUCK));
-          game.ducks[game.ducks.length - 1].idd = data[i];
+          // id name variety color
+          const curData = data[i].split(" ");
+          console.log(curData);
+          game.ducks.push(
+            new Duck(curData[1], parseInt(curData[2]), curData[3]),
+          );
+          game.ducks[game.ducks.length - 1].idd = curData[0];
           game.ducks[game.ducks.length - 1].nameText.visible = true;
           game.scene.add(game.ducks[game.ducks.length - 1]);
         }

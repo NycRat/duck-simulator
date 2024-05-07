@@ -44,7 +44,7 @@ export default class Game {
 
     document.body.appendChild(this.renderer.domElement);
 
-    this.ducks = [new Duck("Ducky", DuckVariety.DUCK)];
+    this.ducks = [new Duck("Ducky", DuckVariety.DUCK, "#ffff00")];
     this.ducks[0].updateScore();
     this.scene.add(this.ducks[0]);
 
@@ -115,7 +115,6 @@ export default class Game {
       self.renderer.setSize(window.innerWidth, window.innerHeight);
       self.renderer.setPixelRatio(window.devicePixelRatio);
     }
-
 
     const pond = self.scene.getObjectByName("pond");
     (<Pond>pond).update(deltaTime);

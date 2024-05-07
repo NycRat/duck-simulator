@@ -72,46 +72,29 @@ export function initializeMenu(game: Game) {
     serverConnect(game);
   });
 
-  const updateColor = () => {
-    // @ts-ignore
-    const color = document.getElementById("color-input")?.value;
-    const duck_model = game.ducks[0].getObjectByName("duck")!;
-
-    if (color === "#000000") {
-      return;
-    }
-    duck_model.traverse(function (child) {
-      // @ts-ignore
-      if (child.isMesh) {
-        // @ts-ignore
-        const duckColor = child.material.color;
-        if (duckColor.r !== 0 && duckColor.g !== 0 && duckColor.b !== 0) {
-          duckColor.set(color);
-        }
-      }
-    });
-  };
-
   document.getElementById("color-input")?.addEventListener("change", (ev) => {
     ev.preventDefault();
-    updateColor();
+    // @ts-ignore
+    const color = document.getElementById("color-input")?.value;
+    game.ducks[0].updateColor(color);
   });
 
   document.getElementById("name-input")?.addEventListener("change", (ev) => {
     ev.preventDefault();
 
     // @ts-ignore
-    const newName = document.getElementById("name-input")!.value;
+    const newName: string = document.getElementById("name-input")!.value;
     const options = new ProfanityOptions();
     options.wholeWord = false;
 
     const profanity = new Profanity(options);
     if (!profanity.exists(newName)) {
-      game.ducks[0].duckName = newName;
+      game.ducks[0].duckName = newName.replace(" ", "_");
+      (<HTMLInputElement>document.getElementById("name-input")!).value =
+        game.ducks[0].duckName;
     } else {
       alert("please pick another name");
-      // @ts-ignore
-      document.getElementById("name-input")!.value = "";
+      (<HTMLInputElement>document.getElementById("name-input")!).value = "";
     }
   });
 
@@ -124,6 +107,7 @@ export function initializeMenu(game: Game) {
       game.ducks[0] = new Duck(
         game.ducks[0].duckName,
         (game.ducks[0].variety + 1) % 2,
+        "#ffff00",
       );
       game.scene.add(game.ducks[0]);
 

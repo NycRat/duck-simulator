@@ -38,21 +38,21 @@ impl Actor for Client {
     fn started(&mut self, ctx: &mut Self::Context) {
         self.hb(ctx);
 
-        let addr = ctx.address();
-        self.addr
-            .send(server::Connect {
-                addr: addr.recipient(),
-            })
-            .into_actor(self)
-            .then(|res, act, ctx| {
-                match res {
-                    Ok(res) => act.id = res,
-                    // something is wrong with chat server
-                    _ => ctx.stop(),
-                }
-                fut::ready(())
-            })
-            .wait(ctx);
+        // let addr = ctx.address();
+        // self.addr
+        //     .send(server::Connect {
+        //         addr: addr.recipient(),
+        //     })
+        //     .into_actor(self)
+        //     .then(|res, act, ctx| {
+        //         match res {
+        //             Ok(res) => act.id = res,
+        //             // something is wrong with chat server
+        //             _ => ctx.stop(),
+        //         }
+        //         fut::ready(())
+        //     })
+        //     .wait(ctx);
     }
 
     fn stopping(&mut self, _: &mut Self::Context) -> Running {
@@ -122,22 +122,38 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Client {
                         }
                         "/join" => {
                             if v.len() == 2 {
+                                // name duck color
+                                println!("JOINED");
                                 self.addr.do_send(server::Join {
                                     id: self.id,
                                     name: v[1].to_owned(),
                                 });
-
-                                ctx.text("/join\ntrue");
-                            } else {
-                                ctx.text("/join\nfalse");
                             }
                         }
-                        "/name" => {
-                            if v.len() == 2 {
-                                ctx.text("/name\ntrue");
-                            } else {
-                                ctx.text("/name\nfalse");
-                            }
+                        "/info" => {
+                            let duck_info: Vec<&str> = v[1].splitn(3, " ").collect();
+                            let name = duck_info[0].to_owned();
+                            let variety = duck_info[1].to_owned();
+                            let color = duck_info[2].to_owned();
+
+                            self.addr
+                                .send(server::Connect {
+                                    addr: ctx.address().recipient(),
+                                    name,
+                                    variety,
+                                    color,
+                                })
+                                .into_actor(self)
+                                .then(|res, act, ctx| {
+                                    match res {
+                                        Ok(res) => act.id = res,
+                                        _ => ctx.stop(),
+                                    }
+                                    fut::ready(())
+                                })
+                                .wait(ctx);
+
+                            println!("joined: {duck_info:?}");
                         }
                         _ => ctx.text(format!("/{m:?}")),
                     }

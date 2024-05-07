@@ -21,6 +21,9 @@ pub struct MessageWoah(pub Option<String>, pub Option<Vec<u8>>);
 #[rtype(u32)]
 pub struct Connect {
     pub addr: Recipient<MessageWoah>,
+    pub name: String,
+    pub variety: String,
+    pub color: String,
 }
 
 #[derive(Message)]
@@ -99,7 +102,7 @@ impl GameServer {
                     }
 
                     // INTERSECTIONS
-                    for id in &lobby.duck_ids {
+                    for (id, info) in &lobby.duck_ids {
                         let duck = act.ducks.get_mut(id).unwrap();
                         let duck_pos = &(duck.x, duck.y, duck.z);
 
@@ -179,7 +182,7 @@ impl GameServer {
 
     fn send_message(&self, lobby: &str, message: &str, skip_id: u32) {
         if let Some(lobby) = self.lobbies.get(lobby) {
-            for id in &lobby.duck_ids {
+            for (id, _) in &lobby.duck_ids {
                 if *id != skip_id {
                     if let Some(addr) = self.clients.get(&id) {
                         addr.do_send(MessageWoah(Some(message.to_owned()), None));
@@ -191,7 +194,7 @@ impl GameServer {
 
     fn send_message_binary(&self, lobby: &str, message: Vec<u8>, skip_id: u32) {
         if let Some(lobby) = self.lobbies.get(lobby) {
-            for id in &lobby.duck_ids {
+            for (id, _) in &lobby.duck_ids {
                 if *id != skip_id {
                     if let Some(addr) = self.clients.get(&id) {
                         addr.do_send(MessageWoah(None, Some(message.clone())));
@@ -216,6 +219,7 @@ impl Handler<Connect> for GameServer {
     fn handle(&mut self, msg: Connect, _: &mut Context<Self>) -> Self::Result {
         let id = self.rng.gen::<u32>();
 
+        // notify of existing ducks in lobby
         msg.addr
             .do_send(MessageWoah(Some(format!("/id\n{id}").to_owned()), None));
         {
@@ -225,7 +229,7 @@ impl Handler<Connect> for GameServer {
                 .unwrap()
                 .duck_ids
                 .iter()
-                .map(|x| format!("\n{x}"))
+                .map(|(id, info)| format!("\n{} {} {} {}", id, info.0, info.1, info.2))
                 .collect();
 
             msg.addr.do_send(MessageWoah(
@@ -246,11 +250,18 @@ impl Handler<Connect> for GameServer {
             },
         );
 
-        // auto join session to main lobby
-        self.lobbies.get_mut("main").unwrap().duck_ids.insert(id);
-
         // notify all users in same lobby
-        self.send_message("main", &format!("/join\n{id}"), id);
+        self.send_message(
+            "main",
+            &format!("/join\n{id} {} {} {}", msg.name, msg.variety, msg.color),
+            id,
+        );
+
+        self.lobbies
+            .get_mut("main")
+            .unwrap()
+            .duck_ids
+            .insert(id, (msg.name, msg.variety, msg.color));
 
         // send id back
         id
@@ -267,7 +278,7 @@ impl Handler<Disconnect> for GameServer {
         if self.clients.remove(&msg.id).is_some() && self.ducks.remove(&msg.id).is_some() {
             // remove session from all lobbies
             for (name, lobby) in &mut self.lobbies {
-                if lobby.duck_ids.remove(&msg.id) {
+                if lobby.duck_ids.remove(&msg.id).is_some() {
                     lobbies.push(name.to_owned());
                 }
             }
@@ -302,23 +313,24 @@ impl Handler<Join> for GameServer {
     type Result = ();
 
     fn handle(&mut self, msg: Join, _: &mut Context<Self>) {
-        let Join { id, name } = msg;
-        let mut lobbies = Vec::new();
-
-        // remove session from all lobbies
-        for (n, lobby) in &mut self.lobbies {
-            if lobby.duck_ids.remove(&id) {
-                lobbies.push(n.to_owned());
-            }
-        }
-        // send message to other users
-        for lobby in lobbies {
-            self.send_message(&lobby, "Someone disconnected", 0);
-        }
-
-        self.lobbies.get_mut(&name).unwrap().duck_ids.insert(id);
-
-        self.send_message(&name, "Someone connected", id);
+        panic!("NOT IMPLEMENTED YET");
+        // let Join { id, name } = msg;
+        // let mut lobbies = Vec::new();
+        //
+        // // remove session from all lobbies
+        // for (n, lobby) in &mut self.lobbies {
+        //     if lobby.duck_ids.remove(&id).is_some() {
+        //         lobbies.push(n.to_owned());
+        //     }
+        // }
+        // // send message to other users
+        // for lobby in lobbies {
+        //     self.send_message(&lobby, "Someone disconnected", 0);
+        // }
+        //
+        // self.lobbies.get_mut(&name).unwrap().duck_ids.insert(id);
+        //
+        // self.send_message(&name, "Someone connected", id);
     }
 }
 
