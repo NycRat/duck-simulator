@@ -16,6 +16,7 @@ function startGame() {
 
   const game = new Game();
   game.updateCamera();
+  // initializeMap(GameMap.OCEAN, game);
   initializeMap(GameMap.DEFAULT, game);
   game.renderer.toneMappingExposure = 0.2;
 

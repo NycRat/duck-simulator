@@ -68,6 +68,12 @@ export default function serverConnect(game: Game) {
       } else if (data[0] === "/id") {
         game.ducks[0].idd = data[1];
       } else if (data[0] === "/join") {
+
+        const div = document.createElement("div");
+        div.innerText = "plead"
+        document.getElementById("lobby-duck-list")?.appendChild(div);
+
+
         for (let i = 1; i < data.length; i++) {
           game.ducks.push(new Duck(data[i], DuckVariety.DUCK));
           game.ducks[game.ducks.length - 1].idd = data[i];
@@ -95,7 +101,6 @@ export default function serverConnect(game: Game) {
         new Bread(data.getBreadX(), data.getBreadY(), data.getBreadZ()),
       );
       game.scene.add(game.breadList[game.breadList.length - 1]);
-      console.log("BREAD");
     }
 
     const ducks = data.getDucksList();

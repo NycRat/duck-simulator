@@ -20,6 +20,7 @@ export default class Game {
   mapCircular: boolean = true;
 
   showStats = false;
+  // controls: FirstPersonControls;
 
   constructor() {
     this.clock = new THREE.Clock();
@@ -43,12 +44,17 @@ export default class Game {
 
     document.body.appendChild(this.renderer.domElement);
 
-    this.ducks = [new Duck("ME", DuckVariety.DUCK)];
+    this.ducks = [new Duck("Ducky", DuckVariety.DUCK)];
     this.ducks[0].updateScore();
     this.scene.add(this.ducks[0]);
 
     this.stats.showPanel(3);
     document.body.appendChild(this.stats.dom);
+
+    // this.controls = new FirstPersonControls(this.camera, document.getElementById("ha")!);
+    // this.controls.movementSpeed = 2;
+    // this.controls.lookSpeed = 0.2;
+    // this.controls.rollSpeed = 1;
   }
 
   initControls() {
@@ -98,6 +104,7 @@ export default class Game {
   update() {
     const self = this;
     const deltaTime = self.clock.getDelta();
+    // this.controls.update(deltaTime);
 
     const a = new THREE.Vector2();
     this.renderer.getSize(a);
@@ -108,6 +115,7 @@ export default class Game {
       self.renderer.setSize(window.innerWidth, window.innerHeight);
       self.renderer.setPixelRatio(window.devicePixelRatio);
     }
+
 
     const pond = self.scene.getObjectByName("pond");
     (<Pond>pond).update(deltaTime);
@@ -211,7 +219,7 @@ export default class Game {
         self.ducks[0].position.z + 2 * Math.cos(self.ducks[0].direction),
       );
       self.camera.lookAt(lookat);
-    } else {
+    } else if (self.pov === POV.TOP_DOWN) {
       self.camera.position.set(
         -Math.sin(self.ducks[0].direction) * 5,
         30,
@@ -224,6 +232,21 @@ export default class Game {
         self.ducks[0].position.y,
         self.ducks[0].position.z + 0.1 * Math.cos(self.ducks[0].direction),
       );
+      self.camera.lookAt(lookat);
+    } else {
+      self.camera.position.set(
+        Math.sin(self.ducks[0].direction + 0.6) * 2,
+        1,
+        Math.cos(self.ducks[0].direction + 0.6) * 2,
+      );
+      // self.camera.position.add(self.ducks[0].position);
+
+      const lookat = new THREE.Vector3(
+        self.ducks[0].position.x,
+        self.ducks[0].position.y + 1,
+        self.ducks[0].position.z,
+      );
+
       self.camera.lookAt(lookat);
     }
   }

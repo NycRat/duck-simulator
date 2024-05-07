@@ -1,3 +1,4 @@
+import { Profanity, ProfanityOptions } from "@2toad/profanity";
 import Game from "./game";
 import Duck from "./objects/duck";
 import { GameMode, POV } from "./options";
@@ -16,8 +17,9 @@ export function initializeMenu(game: Game) {
     menu.style.display = "none";
     lobby_menu.style.display = "unset";
 
-    game.pov = POV.SECOND_PERSON;
+    game.pov = POV.LOBBY;
     game.updateCamera();
+    // serverConnect(game);
   });
 
   document.getElementById("options")?.addEventListener("click", (ev) => {
@@ -48,6 +50,16 @@ export function initializeMenu(game: Game) {
     options_menu.style.display = "none";
   });
 
+  document
+    .getElementById("lobby-back-button")
+    ?.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      menu.style.display = "unset";
+      lobby_menu.style.display = "none";
+      game.pov = POV.THIRD_PERSON;
+      game.updateCamera();
+    });
+
   document.getElementById("actual-play")?.addEventListener("click", (ev) => {
     ev.preventDefault();
     lobby_menu.style.display = "none";
@@ -65,11 +77,17 @@ export function initializeMenu(game: Game) {
     const color = document.getElementById("color-input")?.value;
     const duck_model = game.ducks[0].getObjectByName("duck")!;
 
+    if (color === "#000000") {
+      return;
+    }
     duck_model.traverse(function (child) {
       // @ts-ignore
       if (child.isMesh) {
         // @ts-ignore
-        child.material.color.set(color);
+        const duckColor = child.material.color;
+        if (duckColor.r !== 0 && duckColor.g !== 0 && duckColor.b !== 0) {
+          duckColor.set(color);
+        }
       }
     });
   };
@@ -79,6 +97,24 @@ export function initializeMenu(game: Game) {
     updateColor();
   });
 
+  document.getElementById("name-input")?.addEventListener("change", (ev) => {
+    ev.preventDefault();
+
+    // @ts-ignore
+    const newName = document.getElementById("name-input")!.value;
+    const options = new ProfanityOptions();
+    options.wholeWord = false;
+
+    const profanity = new Profanity(options);
+    if (!profanity.exists(newName)) {
+      game.ducks[0].duckName = newName;
+    } else {
+      alert("please pick another name");
+      // @ts-ignore
+      document.getElementById("name-input")!.value = "";
+    }
+  });
+
   document
     .getElementById("new-duck-button")
     ?.addEventListener("click", (ev) => {
@@ -86,7 +122,7 @@ export function initializeMenu(game: Game) {
 
       game.scene.remove(game.ducks[0]);
       game.ducks[0] = new Duck(
-        game.ducks[0].name,
+        game.ducks[0].duckName,
         (game.ducks[0].variety + 1) % 2,
       );
       game.scene.add(game.ducks[0]);
@@ -94,8 +130,10 @@ export function initializeMenu(game: Game) {
       // @ts-ignore
       // document.getElementById("color-input")!.value = Math.random() * 0xffffff;
 
-      updateColor();
+      // updateColor();
     });
+
+  // document.getElementById("lobby-duck-list")?.appendChild()
 
   // const canvas = game.renderer.domElement;
   // document.addEventListener("click", async () => {

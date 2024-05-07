@@ -3,6 +3,7 @@ export enum POV {
   SECOND_PERSON,
   THIRD_PERSON,
   TOP_DOWN,
+  LOBBY,
 }
 
 export enum GameMode {

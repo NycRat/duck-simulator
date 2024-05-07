@@ -8,17 +8,18 @@
     <link rel="stylesheet" href="src/style.css" type="text/css" media="all" />
     <title>Duck Simulator !!!</title>
   </head>
-  <body>
+  <body id="ha">
     <script type="module" src="/src/main.ts"></script>
     <div id="menu" class="menu">
       <h1>Duck Simulator</h1>
       <button id="play">Play</button>
+      <br />
       <button id="options">Options</button>
     </div>
     <div id="options-menu" class="menu">
       <h2>Options</h2>
-      <button id="graphics-button">Graphics Quality: <b>Great</b></button>
-      <br />
+      <!-- <button id="graphics-button">Graphics Quality: <b>Great</b></button> -->
+      <!-- <br /> -->
       <button id="stats-button">Stats: <b>None</b></button>
       <br />
       <!-- <button id="brightness-button">Brightness: <input type="range" name="" id="" value=""></button> -->
@@ -29,10 +30,15 @@
       <h2>Lobby</h2>
       <div id="lobby-duck-list"></div>
       <div id="duck-select">
+        Name: <input type="text" id="name-input" value="Ducky" />
+        <br />
+        Color: <input type="color" id="color-input" value="#ffff00" />
+        <br />
         <button id="new-duck-button">New Duck</button>
-        <input type="color" id="color-input" value="#ffff00" />
       </div>
       <button id="actual-play">Join Game</button>
+      <br />
+      <button id="lobby-back-button">Back</button>
     </div>
   </body>
 </html>
