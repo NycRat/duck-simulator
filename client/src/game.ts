@@ -4,6 +4,7 @@ import Bread from "./objects/bread";
 import { GameMode, POV } from "./options";
 import Stats from "three/examples/jsm/libs/stats.module.js";
 import Pond from "./objects/pond";
+import { FirstPersonControls } from "three/examples/jsm/Addons.js";
 
 export default class Game {
   clock: THREE.Clock;
@@ -18,9 +19,10 @@ export default class Game {
   stats: Stats = new Stats();
   mapSize: number = 100000;
   mapCircular: boolean = true;
+  startTime: number = 0;
 
   showStats = false;
-  // controls: FirstPersonControls;
+  controls: FirstPersonControls;
 
   constructor() {
     this.clock = new THREE.Clock();
@@ -44,17 +46,17 @@ export default class Game {
 
     document.body.appendChild(this.renderer.domElement);
 
-    this.ducks = [new Duck("Ducky", DuckVariety.DUCK, "#ffff00")];
+    this.ducks = [new Duck("Ducky", DuckVariety.DUCK, "#f1f566")];
     this.ducks[0].updateScore();
     this.scene.add(this.ducks[0]);
 
     this.stats.showPanel(3);
     document.body.appendChild(this.stats.dom);
 
-    // this.controls = new FirstPersonControls(this.camera, document.getElementById("ha")!);
-    // this.controls.movementSpeed = 2;
-    // this.controls.lookSpeed = 0.2;
-    // this.controls.rollSpeed = 1;
+    this.controls = new FirstPersonControls(this.camera, document.getElementById("ha")!);
+    this.controls.movementSpeed = 2;
+    this.controls.lookSpeed = 0.2;
+    // this.ontrols.rollSpeed = 1;
   }
 
   initControls() {
@@ -119,7 +121,24 @@ export default class Game {
     const pond = self.scene.getObjectByName("pond");
     (<Pond>pond).update(deltaTime);
 
-    if (self.gameMode === GameMode.MENU) {
+    if (self.gameMode === GameMode.ONLINE) {
+      const elapsedTime = new Date().getTime() / 1000 - self.startTime;
+      const curTime = Math.trunc(120 - elapsedTime);
+
+      // @ts-ignore
+      const zeroPad = (num, places) => String(num).padStart(places, "0");
+
+      document.getElementById("timer")!.innerText =
+        `${zeroPad(Math.trunc(curTime / 60), 2)}:${zeroPad(curTime % 60, 2)}`;
+    }
+
+    if (
+      self.gameMode === GameMode.MENU ||
+      self.gameMode === GameMode.LEADERBOARDS
+    ) {
+      for (const duck of self.ducks) {
+        duck.nameText.lookAt(self.camera.position);
+      }
       return;
     }
 
@@ -180,7 +199,11 @@ export default class Game {
 
   updateCamera() {
     const self = this;
-    if (self.pov === POV.FIRST_PERSON) {
+
+    if (self.gameMode === GameMode.LEADERBOARDS) {
+      self.camera.position.set(0, 1, 3);
+      self.camera.lookAt(new THREE.Vector3(0, 1, -1));
+    } else if (self.pov === POV.FIRST_PERSON) {
       self.camera.position.set(0, 1, 0);
       self.camera.position.add(self.ducks[0].position);
 

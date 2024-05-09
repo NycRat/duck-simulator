@@ -31,16 +31,15 @@ async fn main() -> std::io::Result<()> {
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
     dotenvy::dotenv().unwrap();
 
+    let local_ip = local_ip_address::local_ip().unwrap();
+
     let server = server::GameServer::new().start();
 
-    let host = std::env::var("HOST").unwrap();
+    // let host = std::env::var("HOST").unwrap();
+    let host = local_ip.to_string();
     let port: i32 = std::env::var("PORT").unwrap().parse().unwrap();
 
-    log::info!(
-        "starting HTTP server at http://{}:{}",
-        std::env::var("HOST").unwrap(),
-        std::env::var("PORT").unwrap(),
-    );
+    log::info!("starting HTTP server at http://{}:{}", host, port);
 
     HttpServer::new(move || {
         App::new()

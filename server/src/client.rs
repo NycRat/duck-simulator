@@ -155,6 +155,11 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Client {
 
                             println!("joined: {duck_info:?}");
                         }
+                        "/start_game" => {
+                            self.addr.do_send(server::StartGame {
+                                lobby: v[1].to_owned(),
+                            });
+                        }
                         _ => ctx.text(format!("/{m:?}")),
                     }
                 } else {

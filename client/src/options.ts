@@ -12,4 +12,6 @@ export enum GameMode {
   OFFLINE,
   ONLINE,
   SPECTATOR,
+  WAITING,
+  LEADERBOARDS,
 }

@@ -69,6 +69,9 @@ export function initializeMenu(game: Game) {
     game.initControls();
     game.gameMode = GameMode.OFFLINE;
     game.renderer.toneMappingExposure = 0.6;
+
+    document.getElementById("timer")!.style.display = "unset";
+
     serverConnect(game);
   });
 
@@ -103,11 +106,14 @@ export function initializeMenu(game: Game) {
     ?.addEventListener("click", (ev) => {
       ev.preventDefault();
 
+      const color = (<HTMLInputElement>document.getElementById("color-input"))
+        .value;
+
       game.scene.remove(game.ducks[0]);
       game.ducks[0] = new Duck(
         game.ducks[0].duckName,
         (game.ducks[0].variety + 1) % 2,
-        "#ffff00",
+        color,
       );
       game.scene.add(game.ducks[0]);
 

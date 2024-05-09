@@ -4,7 +4,7 @@ use std::collections::HashMap;
 pub struct Lobby {
     pub duck_ids: HashMap<u32, (String, String, String)>,
     pub bread: Vec<(f32, f32, f32)>,
-    pub start_time: std::time::Instant,
+    pub start_time: Option<std::time::Instant>,
     pub now: std::time::Instant,
 }
 
@@ -13,7 +13,7 @@ impl Lobby {
         Self {
             duck_ids: HashMap::new(),
             bread: Vec::new(),
-            start_time: std::time::Instant::now(),
+            start_time: None,
             now: std::time::Instant::now(),
         }
     }

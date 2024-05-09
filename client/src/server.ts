@@ -19,17 +19,15 @@ export default function serverConnect(game: Game) {
   });
 
   socket.addEventListener("open", (_event) => {
-    game.gameMode = GameMode.ONLINE;
+    game.gameMode = GameMode.WAITING;
     game.ducks[0].nameText.visible = true;
     if (!socket) {
       return;
     }
-    socket.send("/list");
+    // socket.send("/list");
     socket.send(
       `/info ${game.ducks[0].duckName} ${game.ducks[0].variety} ${game.ducks[0].color}`,
     );
-
-    // socket.send("/join ducky");
 
     setInterval(() => {
       if (socket) {
@@ -61,12 +59,13 @@ export default function serverConnect(game: Game) {
         }
         console.log("Lobbies: " + lobbies);
       } else if (data[0] === "/disconnect") {
-        console.log(data);
-        for (let i = 0; i < game.ducks.length; i++) {
-          if (game.ducks[i].idd === data[1]) {
-            game.scene.remove(game.ducks[i]);
-            game.ducks.splice(i);
-            break;
+        if (game.gameMode !== GameMode.LEADERBOARDS) {
+          for (let i = 0; i < game.ducks.length; i++) {
+            if (game.ducks[i].idd === data[1]) {
+              game.scene.remove(game.ducks[i]);
+              game.ducks.splice(i);
+              break;
+            }
           }
         }
       } else if (data[0] === "/id") {
@@ -83,6 +82,23 @@ export default function serverConnect(game: Game) {
           game.ducks[game.ducks.length - 1].nameText.visible = true;
           game.scene.add(game.ducks[game.ducks.length - 1]);
         }
+      } else if (data[0] === "/start_game") {
+        game.startTime = parseInt(data[1]);
+        game.gameMode = GameMode.ONLINE;
+
+        document.getElementById("timer")!.innerText = "02:00";
+      } else if (data[0] === "/game_end") {
+        game.gameMode = GameMode.LEADERBOARDS;
+        game.updateCamera();
+        for (const duck of game.ducks) {
+          duck.nameText.lookAt(game.camera.position);
+        }
+
+        document.getElementById("timer")!.style.display = "none";
+        window.setTimeout(() => {
+          // TODO make this not do this
+          window.location.reload();
+        }, 5000);
       } else {
         console.log("Message from server ", event.data);
       }
@@ -115,7 +131,12 @@ export default function serverConnect(game: Game) {
       const rotation = ducks[i].getRotation();
       const score = ducks[i].getScore();
 
-      if (id === game.ducks[0].idd) {
+      if (
+        id === game.ducks[0].idd &&
+        game.gameMode !== GameMode.LEADERBOARDS &&
+        (new Date().getTime() / 1000 - game.startTime < 120 - 1 ||
+          game.startTime === 0)
+      ) {
         game.ducks[0].score = score;
         continue;
       }
