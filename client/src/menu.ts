@@ -12,6 +12,10 @@ export function initializeMenu(game: Game) {
     return;
   }
 
+  const name = "Ducky" + Math.trunc(Math.random() * 10000);
+  (<HTMLInputElement>document.getElementById("name-input")).value = name;
+  game.ducks[0].duckName = name;
+
   document.getElementById("play")?.addEventListener("click", (ev) => {
     ev.preventDefault();
     menu.style.display = "none";
@@ -93,6 +97,9 @@ export function initializeMenu(game: Game) {
     const profanity = new Profanity(options);
     if (!profanity.exists(newName)) {
       game.ducks[0].duckName = newName.replace(" ", "_");
+      if (game.ducks[0].duckName.length === 0) {
+        game.ducks[0].duckName = "a";
+      }
       (<HTMLInputElement>document.getElementById("name-input")!).value =
         game.ducks[0].duckName;
     } else {

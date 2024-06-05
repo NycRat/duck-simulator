@@ -1,5 +1,7 @@
 # duck simulator
 
+![duck simulator](/menu.png)
+
 - characters that move around
 
 - duckies

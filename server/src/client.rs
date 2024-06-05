@@ -156,8 +156,10 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Client {
                             println!("joined: {duck_info:?}");
                         }
                         "/start_game" => {
+                            let (lobby, game_duration) = v[1].split_once(" ").unwrap();
                             self.addr.do_send(server::StartGame {
-                                lobby: v[1].to_owned(),
+                                lobby: lobby.to_owned(),
+                                game_duration: game_duration.parse().unwrap(),
                             });
                         }
                         _ => ctx.text(format!("/{m:?}")),

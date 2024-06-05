@@ -8,10 +8,10 @@ use std::{
     time::{Duration, UNIX_EPOCH},
 };
 
-const UPDATE_SYNC_INTERVAL: Duration = Duration::from_millis(10);
+const UPDATE_SYNC_INTERVAL: Duration = Duration::from_millis(50);
 const BREAD_PER_SECOND: f32 = 3.0;
 const MAX_BREAD: usize = 500;
-const GAME_DURATION: Duration = Duration::from_secs(120);
+// const GAME_DURATION: Duration = Duration::from_secs(120);
 
 use actix::prelude::*;
 use rand::{rngs::ThreadRng, Rng};
@@ -67,6 +67,7 @@ pub struct Update {
 #[rtype(result = "()")]
 pub struct StartGame {
     pub lobby: String,
+    pub game_duration: u64,
 }
 
 #[derive(Debug)]
@@ -119,10 +120,11 @@ impl GameServer {
                         continue;
                     }
 
-                    let delta_time = lobby.now.elapsed().as_secs_f32();
-                    lobby.now = std::time::Instant::now();
+                    let delta_time = lobby.now.elapsed().unwrap().as_secs_f32();
+                    lobby.now = std::time::SystemTime::now();
 
-                    let game_over = lobby.now - lobby.start_time.unwrap() >= GAME_DURATION;
+                    let game_over = lobby.now.duration_since(lobby.start_time.unwrap()).unwrap()
+                        >= lobby.game_duration;
 
                     if game_over {
                         lobby.start_time = None;
@@ -271,12 +273,26 @@ impl GameServer {
                     }
                 }
             }
+            for id in &lobby.spectator_ids {
+                if *id != skip_id {
+                    if let Some(addr) = self.clients.get(&id) {
+                        addr.do_send(MessageWoah(Some(message.to_owned()), None));
+                    }
+                }
+            }
         }
     }
 
     fn send_message_binary(&self, lobby: &str, message: Vec<u8>, skip_id: u32) {
         if let Some(lobby) = self.lobbies.get(lobby) {
             for (id, _) in &lobby.duck_ids {
+                if *id != skip_id {
+                    if let Some(addr) = self.clients.get(&id) {
+                        addr.do_send(MessageWoah(None, Some(message.clone())));
+                    }
+                }
+            }
+            for id in &lobby.spectator_ids {
                 if *id != skip_id {
                     if let Some(addr) = self.clients.get(&id) {
                         addr.do_send(MessageWoah(None, Some(message.clone())));
@@ -302,6 +318,46 @@ impl Handler<Connect> for GameServer {
         let id = self.rng.gen::<u32>();
 
         if self.lobbies.get("main").unwrap().start_time.is_some() {
+            msg.addr.do_send(MessageWoah(
+                Some(format!(
+                    "/start_game\n{}\n{}\nTODOMAKETHISBETTER",
+                    self.lobbies.get("main").unwrap().game_duration.as_secs(),
+                    self.lobbies
+                        .get("main")
+                        .unwrap()
+                        .start_time
+                        .unwrap()
+                        .duration_since(UNIX_EPOCH)
+                        .unwrap()
+                        .as_secs()
+                )),
+                None,
+            ));
+
+            msg.addr
+                .do_send(MessageWoah(Some(format!("/id\n{id}").to_owned()), None));
+            {
+                let other_infos: String = self
+                    .lobbies
+                    .get("main")
+                    .unwrap()
+                    .duck_ids
+                    .iter()
+                    .map(|(id, info)| format!("\n{} {} {} {}", id, info.0, info.1, info.2))
+                    .collect();
+
+                msg.addr.do_send(MessageWoah(
+                    Some(format!("/join{other_infos}").to_owned()),
+                    None,
+                ));
+            }
+
+            self.clients.insert(id, msg.addr);
+            self.lobbies
+                .get_mut("main")
+                .unwrap()
+                .spectator_ids
+                .insert(id);
             return id;
         }
 
@@ -361,12 +417,13 @@ impl Handler<Disconnect> for GameServer {
         let mut lobbies: Vec<String> = Vec::new();
 
         // remove address
-        if self.clients.remove(&msg.id).is_some() && self.ducks.remove(&msg.id).is_some() {
+        if self.clients.remove(&msg.id).is_some() || self.ducks.remove(&msg.id).is_some() {
             // remove session from all lobbies
             for (name, lobby) in &mut self.lobbies {
                 if lobby.duck_ids.remove(&msg.id).is_some() {
                     lobbies.push(name.to_owned());
                 }
+                lobby.spectator_ids.remove(&msg.id);
             }
         }
 
@@ -441,22 +498,26 @@ impl Handler<StartGame> for GameServer {
     type Result = MessageResult<StartGame>;
 
     fn handle(&mut self, msg: StartGame, _: &mut Self::Context) -> Self::Result {
+        self.lobbies.get_mut(&msg.lobby).unwrap().game_duration =
+            Duration::from_secs(msg.game_duration);
         if let Some(lobby) = self.lobbies.get(&msg.lobby) {
             if lobby.start_time.is_none() {
                 println!(
-                    "STARTED GAME FOR LOBBY {} WITH {} DUCKS",
+                    "STARTED GAME FOR LOBBY {} WITH {} DUCKS WITH DURATION {}",
                     &msg.lobby,
-                    self.ducks.len()
+                    self.ducks.len(),
+                    lobby.game_duration.as_secs()
                 );
-                let now = Some(std::time::Instant::now());
+                let now = Some(std::time::SystemTime::now());
                 self.send_message(
                     &msg.lobby,
                     &format!(
-                        "/start_game\n{:?}",
+                        "/start_game\n{}\n{}",
                         std::time::SystemTime::now()
                             .duration_since(UNIX_EPOCH)
                             .unwrap()
                             .as_secs(),
+                        lobby.game_duration.as_secs(),
                     ),
                     0,
                 );

@@ -84,7 +84,14 @@ export default function serverConnect(game: Game) {
         }
       } else if (data[0] === "/start_game") {
         game.startTime = parseInt(data[1]);
+        game.gameDuration = parseInt(data[2]);
         game.gameMode = GameMode.ONLINE;
+
+        if (data.length > 3) {
+          game.gameMode = GameMode.SPECTATOR;
+          game.ducks[0].visible = false;
+          // console.log("ha");
+        }
 
         document.getElementById("timer")!.innerText = "02:00";
       } else if (data[0] === "/game_end") {
@@ -134,7 +141,7 @@ export default function serverConnect(game: Game) {
       if (
         id === game.ducks[0].idd &&
         game.gameMode !== GameMode.LEADERBOARDS &&
-        (new Date().getTime() / 1000 - game.startTime < 120 - 1 ||
+        (new Date().getTime() / 1000 - game.startTime < game.gameDuration - 2 ||
           game.startTime === 0)
       ) {
         game.ducks[0].score = score;

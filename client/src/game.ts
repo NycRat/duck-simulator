@@ -23,6 +23,7 @@ export default class Game {
 
   showStats = false;
   controls: FirstPersonControls;
+  gameDuration = 0;
 
   constructor() {
     this.clock = new THREE.Clock();
@@ -53,7 +54,10 @@ export default class Game {
     this.stats.showPanel(3);
     document.body.appendChild(this.stats.dom);
 
-    this.controls = new FirstPersonControls(this.camera, document.getElementById("ha")!);
+    this.controls = new FirstPersonControls(
+      this.camera,
+      document.getElementById("ha")!,
+    );
     this.controls.movementSpeed = 2;
     this.controls.lookSpeed = 0.2;
     // this.ontrols.rollSpeed = 1;
@@ -106,7 +110,11 @@ export default class Game {
   update() {
     const self = this;
     const deltaTime = self.clock.getDelta();
-    // this.controls.update(deltaTime);
+
+    // TODO UPDAT ETHIS
+    if (self.gameMode === GameMode.SPECTATOR) {
+      self.ducks[0].visible = false;
+    }
 
     const a = new THREE.Vector2();
     this.renderer.getSize(a);
@@ -121,15 +129,22 @@ export default class Game {
     const pond = self.scene.getObjectByName("pond");
     (<Pond>pond).update(deltaTime);
 
-    if (self.gameMode === GameMode.ONLINE) {
+    // UPDATE TIME
+    if (
+      self.gameMode === GameMode.ONLINE ||
+      self.gameMode === GameMode.SPECTATOR
+    ) {
       const elapsedTime = new Date().getTime() / 1000 - self.startTime;
-      const curTime = Math.trunc(120 - elapsedTime);
+      const curTime = Math.trunc(this.gameDuration - elapsedTime);
 
       // @ts-ignore
       const zeroPad = (num, places) => String(num).padStart(places, "0");
 
       document.getElementById("timer")!.innerText =
         `${zeroPad(Math.trunc(curTime / 60), 2)}:${zeroPad(curTime % 60, 2)}`;
+
+      document.getElementById("timer")!.innerText +=
+        self.gameMode === GameMode.SPECTATOR ? " (Spectating)" : "";
     }
 
     if (
@@ -141,8 +156,6 @@ export default class Game {
       }
       return;
     }
-
-    self.handleInput();
 
     if (Math.random() <= 5 * deltaTime && self.gameMode === GameMode.OFFLINE) {
       if (self.mapCircular) {
@@ -194,7 +207,15 @@ export default class Game {
 
     self.handleCollisions();
 
-    self.updateCamera();
+    if (self.gameMode === GameMode.SPECTATOR) {
+      this.controls.update(deltaTime);
+      if (self.camera.position.y < 0.2) {
+        self.camera.position.y = 0.2;
+      }
+    } else {
+      self.handleInput();
+      self.updateCamera();
+    }
   }
 
   updateCamera() {
